@@ -64,7 +64,7 @@ if ($action === 'admin_list') {
 
     foreach ($comments as &$c) {
         $c['time_ago'] = timeAgo($c['created_at']);
-        $c['visitor_name'] = $c['nick'] ?? ($c['nickname'] ?: $c['username']);
+        $c['visitor_name'] = $c['nickname'] ?: $c['username'];
         $c['page_name'] = $c['page_nickname'] ?: $c['page_username'];
     }
 
@@ -117,7 +117,7 @@ if ($action === 'admin_delete') {
 // ======================================================================
 // 公开 GET：获取评论列表（仅 status=1 已通过）
 // ======================================================================
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
     $pageUserId = (int)($_GET['page_user_id'] ?? 0);
     $page = max(1, (int)($_GET['page'] ?? 1));
     $perPage = 20;
@@ -165,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 // ======================================================================
 // POST：添加评论
 // ======================================================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $visitorId = (int)($_SESSION['visitor_id'] ?? 0);
     if (empty($visitorId) || empty($_SESSION['visitor_login'])) {
         echo json_encode(['success' => false, 'message' => '请先登录', 'need_login' => true]);

@@ -37,8 +37,8 @@ if ($stmt->fetch()) {
 $stmt = $db->prepare("SELECT verify_token_expires FROM users WHERE id = ? AND email_verify_token != ''");
 $stmt->execute([$user_id]);
 $row = $stmt->fetch();
-if ($row && !empty($row['verify_token_expires'])) {
-    $expires = strtotime($row['verify_token_expires']);
+if ($row && !empty($row['verify_token_expires'] ?? '2000-01-01')) {
+    $expires = strtotime($row['verify_token_expires'] ?? '2000-01-01');
     if ($expires > time() - 55) {
         jsonResponse(['success' => false, 'message' => '发送过于频繁，请稍后再试'], 429);
     }

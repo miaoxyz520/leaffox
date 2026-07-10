@@ -25,7 +25,7 @@ if (!$user) {
     die('<html><body style="background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:sans-serif;"><div style="text-align:center;"><div style="font-size:48px;margin-bottom:20px;"><i class="fas fa-times-circle" style="color:#ef4444"></i></div><h2>验证链接无效</h2><p style="color:#999;">链接可能已过期或已被使用</p></div></body></html>');
 }
 
-if ($user['email_verified']) {
+if ($user['email_verified'] ?? 0) {
     // 已经验证过，直接跳转到用户页面
     $redirect = BASE_URL . '/user/dashboard.php?verified=1';
     header("Location: $redirect");
@@ -33,8 +33,8 @@ if ($user['email_verified']) {
 }
 
 // 检查是否过期
-if (!empty($user['verify_token_expires'])) {
-    $expires = strtotime($user['verify_token_expires']);
+if (!empty($user['verify_token_expires'] ?? '2000-01-01')) {
+    $expires = strtotime($user['verify_token_expires'] ?? '2000-01-01');
     if ($expires < time()) {
         die('<html><body style="background:#0f172a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:sans-serif;"><div style="text-align:center;"><div style="font-size:48px;margin-bottom:20px;">⏰</div><h2>验证链接已过期</h2><p style="color:#999;">请重新发送验证邮件</p></div></body></html>');
     }
@@ -44,7 +44,7 @@ if (!empty($user['verify_token_expires'])) {
 $stmt = $db->prepare("UPDATE users SET email_verified = 1, email_verify_token = '', verify_token_expires = NULL WHERE id = ?");
 $stmt->execute([$uid]);
 
-$email = h($user['email']);
+$email = h($user['email'] ?? '');
 
 echo <<<HTML
 <!DOCTYPE html>
@@ -53,7 +53,7 @@ echo <<<HTML
 <title>邮箱验证成功</title>
 <style>
 body{background:linear-gradient(135deg,#0f172a,#1e1b4b);color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
-.card{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:48px;text-align:center;max-width:420px;width:90%;}
+.card{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:48px;text-align:center;max-width:420px;width:90%;}
 .btn{display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:14px 40px;border-radius:30px;text-decoration:none;font-size:16px;font-weight:600;margin-top:24px;transition:all 0.3s;}
 .btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(99,102,241,0.35);}
 </style>

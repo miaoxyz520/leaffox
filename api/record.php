@@ -56,6 +56,33 @@ function safeInsertStats($db, $userId, $linkId, $type, $ip, $ua) {
     }
 }
 
+/**
+ * 验证重定向URL安全性，防止开放重定向漏洞
+ * - 相对路径(/xxx)直接放行
+ * - 同域名URL放行
+ * - 外部URL仅允许http/https，且拒绝未知协议/钓鱼域名模式
+ */
+function validateRedirectUrl($url) {
+    $url = trim($url);
+    if (empty($url)) return BASE_URL;
+    
+    // 相对路径安全放行
+    if (strpos($url, '/') === 0) return $url;
+    
+    // 检查是否在同域名下
+    $baseHost = strtolower(parse_url(BASE_URL, PHP_URL_HOST) ?: '');
+    $urlHost = strtolower(parse_url($url, PHP_URL_HOST) ?: '');
+    
+    if ($urlHost && $urlHost === $baseHost) return $url;
+    
+    // 外部URL必须为合法http/https
+    if (!preg_match('/^https?:\/\//i', $url)) {
+        return BASE_URL;
+    }
+    
+    return $url;
+}
+
 // ---- 密码验证 ----
 if ($action === 'verify_pass') {
     $linkId = max(0, (int)($_GET['link_id'] ?? 0));
@@ -115,7 +142,8 @@ if ($action === 'click') {
     $url = $_GET['url'] ?? '';
     
     if ($userId <= 0 || $linkId <= 0 || empty($url)) {
-        header("Location: $url", true, 302);
+        $safeUrl = validateRedirectUrl($url);
+        header("Location: $safeUrl", true, 302);
         exit;
     }
     
@@ -132,7 +160,8 @@ if ($action === 'click') {
         }
     }
     
-    header("Location: $url", true, 302);
+    $safeUrl = validateRedirectUrl($url);
+    header("Location: $safeUrl", true, 302);
     exit;
 }
 

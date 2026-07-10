@@ -123,9 +123,9 @@ $statusColors = [0 => '#f59e0b', 1 => '#22c55e', 2 => '#ef4444'];
 
 <!-- 表格 -->
 <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--admin-card-border);background:var(--admin-card-bg)">
-<table style="width:100%;border-collapse:collapse;font-size:13px">
+<table class="w-full text-sm">
 <thead>
-  <tr style="border-bottom:1px solid var(--admin-card-border);background:var(--admin-card-hover)">
+  <tr class="border-b border-white/10 text-gray-400">
     <th style="padding:10px 12px;text-align:left;color:var(--admin-text-muted);font-weight:600;white-space:nowrap">ID</th>
     <th style="padding:10px 12px;text-align:left;color:var(--admin-text-muted);font-weight:600;white-space:nowrap">评论者</th>
     <th style="padding:10px 12px;text-align:left;color:var(--admin-text-muted);font-weight:600;white-space:nowrap">所属主页</th>
@@ -137,7 +137,7 @@ $statusColors = [0 => '#f59e0b', 1 => '#22c55e', 2 => '#ef4444'];
 </thead>
 <tbody>
 <?php if (empty($comments)): ?>
-  <tr><td colspan="7" style="padding:40px;text-align:center;color:var(--admin-text-muted)">暂无评论</td></tr>
+  <tr><td colspan="7" class="p-8 text-center text-gray-500">暂无评论</td></tr>
 <?php else: ?>
   <?php foreach ($comments as $c):
     $visitorName = $c['visitor_nickname'] ?: $c['username'] ?: '（已注销）';
@@ -145,8 +145,8 @@ $statusColors = [0 => '#f59e0b', 1 => '#22c55e', 2 => '#ef4444'];
     $statusColor = $statusColors[$c['status']] ?? '#94a3b8';
     $statusLabel = $statusLabels[$c['status']] ?? '未知';
   ?>
-  <tr style="border-bottom:1px solid var(--admin-card-border);transition:background 0.2s" onmouseover="this.style.background='var(--admin-card-hover)'" onmouseout="this.style.background='transparent'">
-    <td style="padding:10px 12px;color:var(--admin-text-muted);white-space:nowrap">#<?=$c['id']?></td>
+  <tr class="border-b border-white/5 hover:bg-white/5 transition" onmouseover="this.style.background='var(--admin-card-hover)'" onmouseout="this.style.background='transparent'">
+    <td class="p-4 text-gray-400 text-xs whitespace-nowrap">#<?=$c['id']?></td>
     <td style="padding:10px 12px">
       <div style="display:flex;align-items:center;gap:8px">
         <?php if ($c['avatar']): ?>
@@ -157,8 +157,8 @@ $statusColors = [0 => '#f59e0b', 1 => '#22c55e', 2 => '#ef4444'];
         <span style="color:var(--admin-text)"><?=h($visitorName)?></span>
       </div>
     </td>
-    <td style="padding:10px 12px;color:var(--admin-text)"><?=h($pageName)?></td>
-    <td style="padding:10px 12px;max-width:300px;word-break:break-word">
+    <td class="p-4 text-gray-300"><?=h($pageName)?></td>
+    <td class="p-4 max-w-[300px] break-words">
       <span style="color:var(--admin-text)"><?=h(mb_substr($c['content'],0,80))?><?=mb_strlen($c['content'])>80?'…':''?></span>
     </td>
     <td style="padding:10px 12px">
@@ -166,7 +166,7 @@ $statusColors = [0 => '#f59e0b', 1 => '#22c55e', 2 => '#ef4444'];
     </td>
     <td style="padding:10px 12px;color:var(--admin-text-muted);white-space:nowrap;font-size:12px"><?=date('m-d H:i',strtotime($c['created_at']))?></td>
     <td style="padding:10px 12px;text-align:center">
-      <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
+      <div class="flex gap-1 justify-center flex-wrap">
         <?php if ($c['status'] !== 1): ?>
         <button onclick="setCommentStatus(<?=$c['id']?>,1)" class="cmt-btn approve" title="通过"><i class="fas fa-check-circle" style="color:#10b981"></i></button>
         <?php endif; ?>
@@ -188,10 +188,10 @@ $statusColors = [0 => '#f59e0b', 1 => '#22c55e', 2 => '#ef4444'];
 
 <!-- 分页 -->
 <?php if ($totalPages > 1): ?>
-<div style="display:flex;justify-content:center;gap:8px;margin-top:20px;flex-wrap:wrap">
+<div class="flex justify-center gap-2 mt-6 flex-wrap">
   <?php for ($i=1; $i<=$totalPages; $i++): ?>
   <a href="?page=comments&p=<?=$i?><?=$statusFilter!==''?'&status='.h($statusFilter):''?><?=$search?'&search='.urlencode($search):''?>"
-    style="padding:6px 14px;border-radius:8px;font-size:13px;text-decoration:none;<?=$i==$page?'background:rgba(99,102,241,0.25);color:#818cf8;font-weight:700':'color:var(--admin-nav-text);background:var(--admin-card-bg);border:1px solid var(--admin-card-border)'?>"><?=$i?></a>
+    class="px-4 py-2 rounded-xl text-sm transition <?=$i==$page?'background:rgba(99,102,241,0.25);color:#818cf8;font-weight:700':'color:var(--admin-nav-text);background:var(--admin-card-bg);border:1px solid var(--admin-card-border)'?>"><?=$i?></a>
   <?php endfor; ?>
 </div>
 <?php endif; ?>

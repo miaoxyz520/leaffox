@@ -29,7 +29,7 @@ $landingTemplatesDir = __DIR__ . '/../templates/landing';
 
 // ===== 处理上传 =====
 $uploadTarget = $_GET['target'] ?? 'user'; // user | landing
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $uploadTargetPost = $_POST['upload_target'] ?? 'user';
     $targetDir = $uploadTargetPost === 'landing' ? $landingTemplatesDir : $userTemplatesDir;
     
@@ -49,17 +49,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $err = '模版 "' . h($newName) . '" 已存在，请先删除旧模版再上传';
                 } else {
                     $content = file_get_contents($file['tmp_name']);
-                    // 简单校验是否为合法PHP
-                    $check = @eval('return true; ' . $content);
-                    if ($check === false && trim($content) !== '<?php') {
-                        // 尝试用 php -l 检查
-                        $tmpf = tempnam(sys_get_temp_dir(), 'tpl');
-                        file_put_contents($tmpf, $content);
-                        $out = shell_exec("php -l " . escapeshellarg($tmpf) . " 2>&1");
-                        @unlink($tmpf);
-                        if (strpos($out, 'No syntax errors') === false) {
-                            $err = 'PHP 语法错误：' . h(trim($out));
-                        }
+                    // 使用 php -l 检查语法（比 eval 安全，不执行用户代码）
+                    $tmpf = tempnam(sys_get_temp_dir(), 'tpl');
+                    file_put_contents($tmpf, $content);
+                    $cmd = "php -l " . escapeshellarg($tmpf) . " 2>&1";
+                    $out = '';
+                    $rc = -1;
+                    exec($cmd, $out, $rc);
+                    @unlink($tmpf);
+                    $outStr = implode("\n", $out);
+                    if ($rc !== 0) {
+                        $err = 'PHP 语法错误：' . h(trim($outStr));
                     }
                     if (empty($err)) {
                         file_put_contents($dest, $content);
@@ -69,8 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
-    } elseif (!empty($_POST['delete_template'])) {
-        $del = $_POST['delete_template'];
+    } elseif (!empty($_POST['delete_template'] ?? '')) {
+        $del = $_POST['delete_template'] ?? '';
         $delType = $_POST['delete_type'] ?? 'user';
         $delDir = $delType === 'landing' ? $landingTemplatesDir : $userTemplatesDir;
         $builtIn = $delType === 'landing' ? $builtInLanding : $builtInUser;
@@ -130,7 +130,7 @@ $templateVarsDoc = [
         'name' => '用户专属页模版变量',
         'desc' => '用户页模版文件位于 templates/user/，返回关联数组，其中 css 字段包含覆盖默认样式的 CSS。所有 !important 规则会覆盖 page/index.php 中的默认样式。PHP 变量已由 page/index.php 预计算好，模版中不应包含 PHP 逻辑。',
         'vars' => [
-            'css' => ['string', 'CSS 覆盖样式（必须使用 !important）', "\$templateCssData['css']"],
+            'css' => ['string', 'CSS 覆盖样式（必须使用 !important）', ($templateCssData['css'] ?? '/* 示例: 此处显示上次提交的 CSS */')],
             '备注' => ['text', '模版中可使用 @import 引入外部字体/CSS，但注意加载性能'],
             '设计原则' => ['text', '模版只覆盖外观（颜色、字体、圆角、阴影、动画），不改变 HTML 结构和 JS 功能'],
         ],
@@ -256,7 +256,7 @@ $templateVarsDoc = [
         <strong class="text-indigo-400"><i class="fas fa-lightbulb"></i> 设计原则：</strong><br>
         用户页模版只提供 CSS 覆盖样式，不改变 HTML 结构。<br>
         所有 CSS 规则需使用 <code class="text-indigo-300">!important</code> 来覆盖默认样式。<br>
-        模版通过 <code class="text-indigo-300">\$templateCssData['css']</code> 注入到页面。
+        模版通过 <code class="text-indigo-300">$templateCssData['css']</code> 注入到页面。
       </div>
       <?php endif; ?>
 
@@ -305,7 +305,7 @@ $templateVarsDoc = [
 </script>
 
 <div id="templateGuideModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center" onclick="if(event.target===this)closeTemplateGuide()">
-  <div style="background:rgba(20,20,40,0.96);border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:32px;max-width:700px;width:90%;max-height:85vh;overflow-y:auto" onclick="event.stopPropagation()">
+  <div style="background:rgba(20,20,40,0.96);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:32px;max-width:700px;width:90%;max-height:85vh;overflow-y:auto" onclick="event.stopPropagation()">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h3 style="color:#fff;font-size:20px;font-weight:700"><i class="fas fa-book-open"></i> 模版开发指南</h3>
       <span onclick="closeTemplateGuide()" style="cursor:pointer;color:rgba(255,255,255,0.4);font-size:24px">&times;</span>
@@ -334,7 +334,7 @@ return [
 body{background:#ff6b6b!important}
 .card-glass,.card-neumorphism,.card-minimal{
   background:rgba(255,255,255,0.15)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
 }
 '
 ];

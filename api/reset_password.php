@@ -29,7 +29,12 @@ if (empty($token)) {
 }
 
 // 处理密码重置提交
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $showForm) {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && $showForm) {
+    // 速率限制
+    $rateCheck = checkRateLimit('reset_pwd');
+    if (!$rateCheck['allowed']) {
+        $error = $rateCheck['message'];
+    } else {
     $password = $_POST['password'] ?? '';
     $confirm  = $_POST['confirm'] ?? '';
     
@@ -49,16 +54,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $showForm) {
             // 更新密码
             $hash = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $db->prepare("UPDATE users SET password = ? WHERE id = ?");
-            $stmt->execute([$hash, $user['id']]);
+            $stmt->execute([$hash, $user['id'] ?? 0]);
             
             // 标记令牌已使用
             $stmt = $db->prepare("UPDATE password_resets SET used = 1 WHERE id = ?");
             $stmt->execute([$reset['id']]);
             
             $success = '密码重置成功！请用新密码登录。';
+            recordRateLimit('reset_pwd');
             $showForm = false;
         }
     }
+    } // 速率限制结束
 }
 ?>
 <!DOCTYPE html>
@@ -67,10 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $showForm) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <?php $sn = getSiteName($db ?? null); ?><title>重置密码 - <?=h($sn)?></title>
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="../assets/css/tailwind.css">
 <style>
 body{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);min-height:100vh}
-.glass-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:24px}
+.glass-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:12px}
 .input-field{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;border-radius:12px;padding:14px 18px;width:100%;outline:none;transition:all 0.3s}
 .input-field:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,0.2)}
 .input-field::placeholder{color:rgba(255,255,255,0.35)}

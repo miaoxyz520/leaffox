@@ -15,19 +15,19 @@ $links->execute($params);
 $linkList = $links->fetchAll();
 
 // 处理违规操作
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     $lid = (int)($_POST['link_id'] ?? 0);
     if (!$lid) { $msg = '参数错误'; }
     else {
-        if ($_POST['action'] === 'mark_violation') {
+        if (($_POST['action'] ?? '') === 'mark_violation') {
             $db->prepare("UPDATE links SET is_violation = 1 WHERE id=?")->execute([$lid]);
             adminLog($db, '标记违规链接', 'link', $lid);
             $msg = '已标记为违规并下架';
-        } elseif ($_POST['action'] === 'unmark_violation') {
+        } elseif (($_POST['action'] ?? '') === 'unmark_violation') {
             $db->prepare("UPDATE links SET is_violation = 0 WHERE id=?")->execute([$lid]);
             adminLog($db, '取消违规标记', 'link', $lid);
             $msg = '已取消违规标记';
-        } elseif ($_POST['action'] === 'delete_link') {
+        } elseif (($_POST['action'] ?? '') === 'delete_link') {
             $db->prepare("DELETE FROM links WHERE id=?")->execute([$lid]);
             adminLog($db, '删除违规链接', 'link', $lid);
             $msg = '链接已删除';
@@ -194,7 +194,7 @@ function previewItem(url, type) {
   if (type === 'video') {
     box.innerHTML = '<video src="' + url.replace(/'/g,"%27") + '" controls autoplay style="max-width:85vw;max-height:85vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);"></video>';
   } else {
-    box.innerHTML = '<img src="' + url.replace(/'/g,"%27") + '" style="max-width:85vw;max-height:85vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);object-fit:contain;" onerror="this.outerHTML=\'<div style=\\\'color:#999;text-align:center;padding:40px;\\\'><div style=\\\'font-size:48px;margin-bottom:16px;\\\'><i class="fas fa-times-circle" style="color:#ef4444"></i></div><p>图片加载失败</p></div>\'">';
+    box.innerHTML = '<img src="' + url.replace(/'/g,"%27") + '" style="max-width:85vw;max-height:85vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);object-fit:contain;" onerror="this.outerHTML='<div style=\\'color:#999;text-align:center;padding:40px;\\'><div style=\\'font-size:48px;margin-bottom:16px;\\'><i class="fas fa-times-circle" style="color:#ef4444"></i></div><p>图片加载失败</p></div>'">';
   }
   document.getElementById('previewModal').style.display = 'flex';
 }

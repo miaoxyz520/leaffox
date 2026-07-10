@@ -5,19 +5,19 @@
 
 // ---- 处理标记操作 ----
 $markMsg = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
     $id = (int)($_POST['id'] ?? 0);
-    if ($_POST['action'] === 'resolve' && $id) {
+    if (($_POST['action'] ?? '') === 'resolve' && $id) {
         $db->prepare("UPDATE reports SET status = 1 WHERE id = ?")->execute([$id]);
         adminLog($db, '处理举报 #'.$id, 'report', $id);
         $markMsg = '<i class="fas fa-check-circle" style="color:#10b981"></i> 举报 #'.$id.' 已标记为已处理';
     }
-    if ($_POST['action'] === 'unresolve' && $id) {
+    if (($_POST['action'] ?? '') === 'unresolve' && $id) {
         $db->prepare("UPDATE reports SET status = 0 WHERE id = ?")->execute([$id]);
         adminLog($db, '重开举报 #'.$id, 'report', $id);
         $markMsg = '<i class="fas fa-sync-alt"></i> 举报 #'.$id.' 已重开';
     }
-    if ($_POST['action'] === 'delete' && $id) {
+    if (($_POST['action'] ?? '') === 'delete' && $id) {
         $db->prepare("DELETE FROM reports WHERE id = ?")->execute([$id]);
         adminLog($db, '删除举报 #'.$id, 'report', $id);
         $markMsg = '<i class="fas fa-trash-alt"></i> 举报 #'.$id.' 已删除';
@@ -79,25 +79,26 @@ $reports = $db->query("
   <p class="text-gray-500">暂无举报记录 <i class="fas fa-celebration"></i></p>
 </div>
 <?php else: ?>
-<div class="overflow-x-auto">
+<div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+<div class="table-responsive">
   <table class="w-full text-sm">
     <thead>
       <tr class="text-gray-500 text-left border-b border-white/10">
-        <th class="pb-3 font-medium">ID</th>
-        <th class="pb-3 font-medium">被举报用户</th>
-        <th class="pb-3 font-medium">举报类型</th>
-        <th class="pb-3 font-medium">原因说明</th>
-        <th class="pb-3 font-medium">举报者IP</th>
-        <th class="pb-3 font-medium">时间</th>
-        <th class="pb-3 font-medium">状态</th>
-        <th class="pb-3 font-medium">操作</th>
+        <th class="p-4 text-left font-medium">ID</th>
+        <th class="p-4 text-left font-medium">被举报用户</th>
+        <th class="p-4 text-left font-medium">举报类型</th>
+        <th class="p-4 text-left font-medium">原因说明</th>
+        <th class="p-4 text-left font-medium">举报者IP</th>
+        <th class="p-4 text-left font-medium">时间</th>
+        <th class="p-4 text-left font-medium">状态</th>
+        <th class="p-4 text-left font-medium">操作</th>
       </tr>
     </thead>
     <tbody>
       <?php foreach ($reports as $r): ?>
       <tr class="border-b border-white/5 hover:bg-white/[0.02]">
-        <td class="py-3 text-gray-400">#<?=$r['id']?></td>
-        <td class="py-3">
+        <td class="p-4 text-gray-400">#<?=$r['id']?></td>
+        <td class="p-4">
           <div class="flex items-center gap-2">
             <?php if ($r['avatar']): ?>
               <img src="<?=h($r['avatar'])?>" class="w-7 h-7 rounded-full object-cover bg-white/10">
@@ -112,7 +113,7 @@ $reports = $db->query("
             </div>
           </div>
         </td>
-        <td class="py-3">
+        <td class="p-4">
           <?php
           $typeLabel = $reportTypes[$r['type']] ?? $r['type'];
           $typeColors = [
@@ -127,17 +128,17 @@ $reports = $db->query("
           ?>
           <span class="px-2 py-0.5 rounded-full text-xs <?=$colorClass?>"><?=h($typeLabel)?></span>
         </td>
-        <td class="py-3 text-gray-400 max-w-[200px] truncate"><?=h($r['reason'] ?? '-')?></td>
+        <td class="p-4 text-gray-400 max-w-[200px] truncate"><?=h($r['reason'] ?? '-')?></td>
         <td class="py-3 text-gray-500 text-xs font-mono"><?=h($r['reporter_ip'])?></td>
-        <td class="py-3 text-gray-400 text-xs whitespace-nowrap"><?=$r['created_at']?></td>
-        <td class="py-3">
+        <td class="p-4 text-gray-400 text-xs whitespace-nowrap"><?=$r['created_at']?></td>
+        <td class="p-4">
           <?php if ($r['status']): ?>
             <span class="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full text-xs">已处理</span>
           <?php else: ?>
             <span class="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full text-xs">未处理</span>
           <?php endif; ?>
         </td>
-        <td class="py-3">
+        <td class="p-4">
           <form method="POST" class="flex items-center gap-1" onsubmit="return confirm('确认操作？')">
             <input type="hidden" name="id" value="<?=$r['id']?>">
             <?php if ($r['status']): ?>
@@ -152,6 +153,7 @@ $reports = $db->query("
       <?php endforeach; ?>
     </tbody>
   </table>
+</div>
 </div>
 
 <!-- 分页 -->

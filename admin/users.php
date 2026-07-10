@@ -10,10 +10,10 @@ if ($isStandalone) {
     require_once __DIR__ . '/../config.php';
     session_start();
     if (!isset($_SESSION['admin_id'])) { header('Location: index.php'); exit; }
-    $stmt = $db->prepare("SELECT is_super FROM admins WHERE id=?");
+    $stmt = $db->prepare("SELECT role FROM admin WHERE id=?");
     $stmt->execute([$_SESSION['admin_id']]);
     $admin = $stmt->fetch();
-    if (!$admin || !$admin['is_super']) { http_response_code(403); echo '无权限'; exit; }
+    if (!$admin || $admin['role'] !== 'super') { http_response_code(403); echo '无权限'; exit; }
     $subPage = 'users';
     // ---- 分类 + 子分组配置（双侧栏） ----
     $pageToCat = [
@@ -48,8 +48,8 @@ if ($isStandalone) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <?php $sn = getSiteName($db ?? null); ?><title>用户管理 - <?=h($sn)?></title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="../assets/css/tailwind.css">
+<link rel="stylesheet" href="../assets/css/fontawesome.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root,.dark-mode{
@@ -110,11 +110,12 @@ body{background:var(--admin-bg);color:var(--admin-text);font-family:-apple-syste
 .hamburger:hover{background:rgba(99,102,241,0.3);color:var(--admin-nav-hover-text)}
 .sidebar-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--admin-overlay);z-index:49;opacity:0;pointer-events:none;transition:opacity 0.3s}
 .sidebar-overlay.show{opacity:1;pointer-events:auto}
-.main{margin-left:272px;flex:1;min-height:100vh;padding:24px 32px;max-width:1200px}
+.main{margin-left:272px;flex:1;min-height:100vh;padding:24px 32px;max-width:100%;min-width:0}
 .search-bar{display:flex;gap:12px;flex-wrap:nowrap}.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 .table-responsive::-webkit-scrollbar{height:4px}
 .table-responsive::-webkit-scrollbar-thumb{background:var(--admin-scrollbar);border-radius:4px}
+.card-base{background:var(--admin-card-bg);border:1px solid var(--admin-card-border);border-radius:16px;padding:22px;margin-bottom:16px}
 .text-white{color:var(--admin-text-primary)!important}
 .text-gray-500{color:var(--admin-text-muted)!important}.text-gray-400{color:var(--admin-text-secondary)!important}
 .bg-white\/5{background:var(--admin-card-bg)!important}
@@ -196,6 +197,7 @@ foreach ($groups as $groupLabel => $groupItems):
 <?php } // end standalone wrapper
 ?>
 
+<?php
 /**
  * 管理员 - 用户管理（含主页链接一键打开）
  */
@@ -213,42 +215,85 @@ $userList = $users->fetchAll();
 
 // 处理操作
 $actionMsg = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $uid = (int)($_POST['user_id'] ?? 0);
-    if (!$uid) { $actionMsg = '参数错误'; }
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
+    // ★ 新增用户不需要 user_id，优先处理，避免被 uid 校验拦截 ★
+    if (($_POST['action'] ?? '') === 'add_user') {
+            $newUsername = trim($_POST['username'] ?? '');
+            $newPassword = $_POST['password'] ?? '';
+            $newNickname = trim($_POST['nickname'] ?? '');
+            $newEmail    = trim($_POST['email'] ?? '');
+            
+            if (empty($newUsername) || empty($newPassword)) {
+                $actionMsg = '用户名和密码不能为空';
+            } elseif (strlen($newUsername) < 3 || strlen($newUsername) > 20) {
+                $actionMsg = '用户名长度需3-20个字符';
+            } elseif (!preg_match('/^[a-zA-Z0-9_\x{4e00}-\x{9fa5}]+$/u', $newUsername)) {
+                $actionMsg = '用户名只能包含字母、数字、下划线或中文';
+            } else {
+                // 检查用户名是否已存在
+                $check = $db->prepare("SELECT id FROM users WHERE username = ? LIMIT 1");
+                $check->execute([$newUsername]);
+                if ($check->fetch()) {
+                    $actionMsg = '用户名已存在';
+                } else {
+                    // 检查邮箱是否已存在
+                    if ($newEmail) {
+                        $checkEmail = $db->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
+                        $checkEmail->execute([$newEmail]);
+                        if ($checkEmail->fetch()) {
+                            $actionMsg = '邮箱已被使用';
+                            $addError = true;
+                        }
+                    }
+                    if (empty($addError)) {
+                        $hash = password_hash($newPassword, PASSWORD_DEFAULT);
+                        $stmt = $db->prepare("INSERT INTO users (username, password, nickname, email, email_verified, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, NOW())");
+                        $stmt->execute([$newUsername, $hash, $newNickname ?: $newUsername, $newEmail ?: '', $newEmail ? 0 : 0]);
+                        $newUid = $db->lastInsertId();
+                        adminLog($db, '新增用户', 'user', (int)$newUid, "用户名: $newUsername, 昵称: $newNickname");
+                        $actionMsg = "用户 <strong>$newUsername</strong> 创建成功！";
+                    }
+                }
+            }
+    }
+    // ★ 其他操作需要校验 user_id ★
     else {
-        if ($_POST['action'] === 'toggle') {
-            $stmt = $db->prepare("UPDATE users SET is_active = CASE WHEN is_active=1 THEN 0 ELSE 1 END WHERE id=?");
-            $stmt->execute([$uid]);
-            $newStatus = $db->query("SELECT is_active FROM users WHERE id=$uid")->fetchColumn();
-            adminLog($db, $newStatus?'解封用户':'封禁用户', 'user', $uid, "用户ID:$uid → ".($newStatus?'正常':'封禁'));
-            $actionMsg = '操作成功';
-        } elseif (in_array($_POST['action'], ['toggle_likes','toggle_comments','toggle_favorites'])) {
-        $field = $_POST['action'] === 'toggle_likes' ? 'enable_likes' : ($_POST['action'] === 'toggle_comments' ? 'enable_comments' : 'enable_favorites');
-        $stmt = $db->prepare("UPDATE users SET $field = CASE WHEN $field=1 THEN 0 ELSE 1 END WHERE id=?");
-        $stmt->execute([$uid]);
-        $newVal = $db->query("SELECT $field FROM users WHERE id=$uid")->fetchColumn();
-        $label = ['enable_likes'=>'点赞','enable_comments'=>'评论','enable_favorites'=>'收藏'][$field];
-        adminLog($db, "切换互动:$label", 'user', $uid, "用户ID:$uid → ".($newVal?'开启':'关闭'));
-        $actionMsg = "$label 已".($newVal?'开启':'关闭');
-    } elseif ($_POST['action'] === 'toggle_audit') {
-        $stmt = $db->prepare("UPDATE users SET comment_audit_enabled = CASE WHEN comment_audit_enabled=1 THEN 0 ELSE 1 END WHERE id=?");
-        $stmt->execute([$uid]);
-        $newVal = $db->query("SELECT comment_audit_enabled FROM users WHERE id=$uid")->fetchColumn();
-        adminLog($db, '切换评论审核', 'user', $uid, "用户ID:$uid → ".($newVal?'开启':'关闭'));
-        $actionMsg = '评论审核已'.($newVal?'开启':'关闭');
-    } elseif ($_POST['action'] === 'reset_pwd') {
-            $newPwd = substr(bin2hex(random_bytes(4)), 0, 8);
-            $hash = password_hash($newPwd, PASSWORD_DEFAULT);
-            $stmt = $db->prepare("UPDATE users SET password=? WHERE id=?");
-            $stmt->execute([$hash, $uid]);
-            adminLog($db, '重置用户密码', 'user', $uid, "密码重置为: $newPwd");
-            $actionMsg = "密码已重置为: $newPwd";
-        } elseif ($_POST['action'] === 'delete') {
-            $stmt = $db->prepare("DELETE FROM users WHERE id=?");
-            $stmt->execute([$uid]);
-            adminLog($db, '删除用户', 'user', $uid, "删除用户ID:$uid");
-            $actionMsg = '用户已删除及所有相关数据';
+        $uid = (int)($_POST['user_id'] ?? 0);
+        if (!$uid) { $actionMsg = '参数错误'; }
+        else {
+            if (in_array($_POST['action'] ?? '', ['toggle_likes','toggle_comments','toggle_favorites'])) {
+                $field = ($_POST['action'] ?? '') === 'toggle_likes' ? 'enable_likes' : (($_POST['action'] ?? '') === 'toggle_comments' ? 'enable_comments' : 'enable_favorites');
+                $stmt = $db->prepare("UPDATE users SET $field = CASE WHEN $field=1 THEN 0 ELSE 1 END WHERE id=?");
+                $stmt->execute([$uid]);
+                $newVal = $db->query("SELECT $field FROM users WHERE id=$uid")->fetchColumn();
+                $label = ['enable_likes'=>'点赞','enable_comments'=>'评论','enable_favorites'=>'收藏'][$field];
+                adminLog($db, "切换互动:$label", 'user', $uid, "用户ID:$uid → ".($newVal?'开启':'关闭'));
+                $actionMsg = "$label 已".($newVal?'开启':'关闭');
+            } elseif (($_POST['action'] ?? '') === 'toggle_audit') {
+                $stmt = $db->prepare("UPDATE users SET comment_audit_enabled = CASE WHEN comment_audit_enabled=1 THEN 0 ELSE 1 END WHERE id=?");
+                $stmt->execute([$uid]);
+                $newVal = $db->query("SELECT comment_audit_enabled FROM users WHERE id=$uid")->fetchColumn();
+                adminLog($db, '切换评论审核', 'user', $uid, "用户ID:$uid → ".($newVal?'开启':'关闭'));
+                $actionMsg = '评论审核已'.($newVal?'开启':'关闭');
+            } elseif (($_POST['action'] ?? '') === 'toggle') {
+                $stmt = $db->prepare("UPDATE users SET is_active = CASE WHEN is_active=1 THEN 0 ELSE 1 END WHERE id=?");
+                $stmt->execute([$uid]);
+                $newStatus = $db->query("SELECT is_active FROM users WHERE id=$uid")->fetchColumn();
+                adminLog($db, $newStatus?'解封用户':'封禁用户', 'user', $uid, "用户ID:$uid → ".($newStatus?'正常':'封禁'));
+                $actionMsg = '操作成功';
+            } elseif (($_POST['action'] ?? '') === 'reset_pwd') {
+                $newPwd = substr(bin2hex(random_bytes(4)), 0, 8);
+                $hash = password_hash($newPwd, PASSWORD_DEFAULT);
+                $stmt = $db->prepare("UPDATE users SET password=? WHERE id=?");
+                $stmt->execute([$hash, $uid]);
+                adminLog($db, '重置用户密码', 'user', $uid, "密码重置为: $newPwd");
+                $actionMsg = "密码已重置为: $newPwd";
+            } elseif (($_POST['action'] ?? '') === 'delete') {
+                $stmt = $db->prepare("DELETE FROM users WHERE id=?");
+                $stmt->execute([$uid]);
+                adminLog($db, '删除用户', 'user', $uid, "删除用户ID:$uid");
+                $actionMsg = '用户已删除及所有相关数据';
+            }
         }
     }
 }
@@ -261,12 +306,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-xl mb-4 text-sm"><?=h($actionMsg)?></div>
 <?php endif; ?>
 
-<form method="GET" class="search-bar mb-6">
+<div class="flex items-center gap-3 mb-6 flex-wrap">
+<form method="GET" class="search-bar flex-1 min-w-[200px]">
   <input type="hidden" name="page" value="users">
   <input type="text" name="search" value="<?=h($search)?>" placeholder="搜索用户名/昵称..." class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-indigo-500/50">
   <button type="submit" class="bg-indigo-500/20 text-indigo-300 px-5 py-2.5 rounded-xl text-sm hover:bg-indigo-500/30 transition whitespace-nowrap">搜索</button>
   <?php if ($search): ?><a href="?page=users" class="bg-white/5 text-gray-400 px-4 py-2.5 rounded-xl text-sm hover:bg-white/10 transition whitespace-nowrap">清除</a><?php endif; ?>
 </form>
+<button onclick="document.getElementById('addUserModal').classList.remove('hidden')" class="bg-emerald-500/20 text-emerald-300 px-5 py-2.5 rounded-xl text-sm hover:bg-emerald-500/30 transition whitespace-nowrap flex items-center gap-2"><i class="fas fa-plus"></i> 新增用户</button>
+</div>
+
+<!-- 新增用户弹窗 -->
+<div id="addUserModal" class="hidden fixed inset-0 z-[999] flex items-center justify-center" style="background:rgba(0,0,0,0.6);backdrop-filter:blur(4px)">
+  <div class="bg-[#1e293b] border border-white/10 rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-lg font-bold text-white"><i class="fas fa-user-plus text-emerald-400 mr-2"></i>新增用户</h3>
+      <button onclick="document.getElementById('addUserModal').classList.add('hidden')" class="text-gray-400 hover:text-white text-xl leading-none">&times;</button>
+    </div>
+    <form method="POST">
+      <input type="hidden" name="action" value="add_user">
+      <div class="mb-4">
+        <label class="block text-gray-300 text-sm font-medium mb-1.5">用户名 <span class="text-red-400">*</span></label>
+        <input type="text" name="username" required minlength="3" maxlength="20" placeholder="3-20个字符" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-indigo-500/50">
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-300 text-sm font-medium mb-1.5">密码 <span class="text-red-400">*</span></label>
+        <input type="text" name="password" required minlength="6" placeholder="至少6位" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-indigo-500/50">
+      </div>
+      <div class="mb-4">
+        <label class="block text-gray-300 text-sm font-medium mb-1.5">昵称</label>
+        <input type="text" name="nickname" placeholder="默认同用户名" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-indigo-500/50">
+      </div>
+      <div class="mb-5">
+        <label class="block text-gray-300 text-sm font-medium mb-1.5">邮箱</label>
+        <input type="email" name="email" placeholder="可选" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-indigo-500/50">
+      </div>
+      <button type="submit" class="w-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-5 py-2.5 rounded-xl text-sm hover:bg-emerald-500/30 transition font-medium">确认创建</button>
+    </form>
+  </div>
+</div>
 
 <div class="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
 <div class="table-responsive">
@@ -325,7 +403,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
       <form method="POST" style="display:inline">
         <input type="hidden" name="action" value="toggle_<?=$key?>">
         <input type="hidden" name="user_id" value="<?=$u['id']?>">
-        <button type="submit" class="px-2 py-1 rounded-lg text-xs transition <?=$enabled?$item['on_color']:$item['off_color']?>" title="<?=$enabled?'点击关闭':'点击开启'?> <?=$key=='likes'?'点赞':($key=='comments'?'评论':'收藏')?>"><?=$item['icon']?></button>
+        <button type="submit" class="px-2 py-1 rounded-lg text-xs transition <?=$enabled?$item['on_color'] ?? '#10b981':$item['off_color'] ?? '#6b7280'?>" title="<?=$enabled?'点击关闭':'点击开启'?> <?=$key=='likes'?'点赞':($key=='comments'?'评论':'收藏')?>"><?=$item['icon'] ?? ''?></button>
       </form>
       <?php endforeach; ?>
       <!-- 审核开关 -->

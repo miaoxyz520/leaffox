@@ -1,55 +1,64 @@
 <?php
 /**
- * 管理员登录页（支持用户名/邮箱登录）
+ * 管理员登录页（优化版 v2.6）
+ * CSRF防护 · 速率限制 · Session加固
  */
 require_once __DIR__ . '/../config.php';
 
-// 数据库未连接时跳转安装向导
 if (!$db) { header("Location: ../install.php"); exit; }
 
-// 已登录则跳转
 if (!empty($_SESSION['admin_id']) && !empty($_SESSION['admin_login'])) {
     redirect('./dashboard.php');
 }
 
 $settings = getSettings($db);
 $allowEmailLogin = $settings['admin_email_login'] ?? 0;
-
 $error = '';
-$loginMode = 'username'; // username | email
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $login = trim($_POST['login'] ?? '');
-    $password = $_POST['password'] ?? '';
-    
-    if (empty($login) || empty($password)) {
-        $error = '请输入账号/邮箱和密码';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    // CSRF验证
+    if (!verifyCsrfToken()) {
+        $error = '安全验证失败，请刷新页面重试';
     } else {
-        // 判断是邮箱还是用户名
-        if (filter_var($login, FILTER_VALIDATE_EMAIL) && $allowEmailLogin) {
-            $loginMode = 'email';
-            $stmt = $db->prepare("SELECT * FROM admin WHERE email = ? AND status = 1 LIMIT 1");
-            $stmt->execute([$login]);
-        } else {
-            $stmt = $db->prepare("SELECT * FROM admin WHERE username = ? AND status = 1 LIMIT 1");
-            $stmt->execute([$login]);
-        }
-        $admin = $stmt->fetch();
+        $login = trim($_POST['login'] ?? '');
+        $password = $_POST['password'] ?? '';
         
-        if ($admin && password_verify($password, $admin['password'])) {
-            $_SESSION['admin_id']    = (int)$admin['id'];
-            $_SESSION['admin_name']  = $admin['nickname'] ?: $admin['username'];
-            $_SESSION['admin_role']  = $admin['role'];
-            $_SESSION['admin_login'] = true;
-            
-            // 更新登录信息
-            $stmt = $db->prepare("UPDATE admin SET last_ip = ?, last_login = ? WHERE id = ?");
-            $stmt->execute([getClientIP(), date('Y-m-d H:i:s'), $admin['id']]);
-            
-            adminLog($db, '管理员登录', 'admin', $admin['id'], "账号: {$admin['username']}");
-            redirect('./dashboard.php');
+        if (empty($login) || empty($password)) {
+            $error = '请输入账号/邮箱和密码';
         } else {
-            $error = '账号或密码错误';
+            // 速率限制
+            $rateCheck = checkRateLimit('admin_login');
+            if (!$rateCheck['allowed']) {
+                $error = $rateCheck['message'];
+            } else {
+                if (filter_var($login, FILTER_VALIDATE_EMAIL) && $allowEmailLogin) {
+                    $stmt = $db->prepare("SELECT * FROM admin WHERE email = ? AND status = 1 LIMIT 1");
+                    $stmt->execute([$login]);
+                } else {
+                    $stmt = $db->prepare("SELECT * FROM admin WHERE username = ? AND status = 1 LIMIT 1");
+                    $stmt->execute([$login]);
+                }
+                $admin = $stmt->fetch();
+                
+                if ($admin && password_verify($password, $admin['password'])) {
+                    session_regenerate_id(true);
+                    $_SESSION['admin_id']    = (int)$admin['id'];
+                    $_SESSION['admin_name']  = $admin['nickname'] ?: $admin['username'];
+                    $_SESSION['admin_role']  = $admin['role'];
+                    $_SESSION['admin_login'] = true;
+                    
+                    regenerateSession(); // 🔒 Session加固
+                    
+                    $stmt = $db->prepare("UPDATE admin SET last_ip = ?, last_login = ? WHERE id = ?");
+                    $stmt->execute([getClientIP(), date('Y-m-d H:i:s'), $admin['id']]);
+                    
+                    adminLog($db, '管理员登录', 'admin', $admin['id'], "账号: {$admin['username']}");
+                    redirect('./dashboard.php');
+                } else {
+                    $error = '账号或密码错误';
+                    recordRateLimit('admin_login');
+                }
+            }
         }
     }
 }
@@ -60,10 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <?php $sn = getSiteName($db ?? null); ?><title>管理员登录 - <?=h($sn)?></title>
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="../assets/css/tailwind.css">
 <style>
 body{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);min-height:100vh}
-.glass-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:24px}
+.glass-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:12px}
 .input-field{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;border-radius:12px;padding:14px 18px;width:100%;outline:none;transition:all 0.3s}
 .input-field:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,0.2)}
 .input-field::placeholder{color:rgba(255,255,255,0.35)}
@@ -84,6 +93,7 @@ body{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);min-
     <?php endif; ?>
     
     <form method="POST">
+      
       <div class="mb-5">
         <label class="block text-gray-300 text-sm font-medium mb-2"><?=$allowEmailLogin?'账号 / 邮箱':'管理员账号'?></label>
         <input type="text" name="login" class="input-field" placeholder="<?=$allowEmailLogin?'请输入账号或邮箱':'请输入账号'?>" required autofocus>

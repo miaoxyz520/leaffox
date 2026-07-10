@@ -2,6 +2,9 @@
 /**
  * 管理员 - 操作日志
  */
+require_once __DIR__ . '/../config.php';
+requireAdmin();
+
 $page = max(1, (int)($_GET['p'] ?? 1));
 $perPage = 30;
 

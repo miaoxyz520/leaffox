@@ -61,8 +61,8 @@ echo json_encode([
     'liked' => $liked,
     'favorited' => $favorited,
     'settings' => $settings ? [
-        'enable_likes' => (bool)$settings['enable_likes'],
-        'enable_comments' => (bool)$settings['enable_comments'],
-        'enable_favorites' => (bool)$settings['enable_favorites'],
+        'enable_likes' => (bool)($settings['enable_likes'] ?? 1),
+        'enable_comments' => (bool)($settings['enable_comments'] ?? 1),
+        'enable_favorites' => (bool)($settings['enable_favorites'] ?? 1),
     ] : ['enable_likes'=>true, 'enable_comments'=>true, 'enable_favorites'=>true],
 ]);

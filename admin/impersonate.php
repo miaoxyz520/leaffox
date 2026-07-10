@@ -40,6 +40,7 @@ $_SESSION['impersonate_admin_role'] = $_SESSION['admin_role'];
 $_SESSION['impersonated_by_admin']  = true;
 
 // 设置目标用户的会话
+session_regenerate_id(true);
 $_SESSION['user_id']    = (int)$targetUser['id'];
 $_SESSION['user_name']  = $targetUser['nickname'] ?: $targetUser['username'];
 $_SESSION['user_login'] = true;

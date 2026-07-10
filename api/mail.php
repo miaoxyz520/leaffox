@@ -23,7 +23,7 @@ function sendMail($to, $subject, $body) {
     $user     = $settings['smtp_user'] ?? '';
     $pass     = $settings['smtp_pass'] ?? '';
     $encrypt  = $settings['smtp_encrypt'] ?? 'ssl';
-    $fromName = $settings['smtp_from_name'] ?: $settings['site_name'] ?: 'Leaffox主页系统';
+    $fromName = $settings['smtp_from_name'] ?? $settings['site_name'] ?? 'Leaffox' ?? 'Leaffox' ?: $settings['site_name'] ?? 'Leaffox' ?: 'Leaffox主页系统';
 
     if (empty($host) || empty($user) || empty($pass)) {
         return ['success' => false, 'message' => 'SMTP 未配置'];

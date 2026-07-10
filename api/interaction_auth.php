@@ -35,6 +35,13 @@ if ($action === 'logout') {
 
 // ===== 登录 =====
 if ($action === 'login') {
+    // 速率限制
+    $rateCheck = checkRateLimit('visit_login');
+    if (!$rateCheck['allowed']) {
+        echo json_encode(['success' => false, 'message' => $rateCheck['message']]);
+        exit;
+    }
+    
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
@@ -48,22 +55,24 @@ if ($action === 'login') {
     $stmt->execute([$username, $username]);
     $user = $stmt->fetch();
 
-    if (!$user || !password_verify($password, $user['password'])) {
+    if (!$user || !password_verify($password, $user['password'] ?? '')) {
+        recordRateLimit('visit_login');
         echo json_encode(['success' => false, 'message' => '账号或密码错误']);
         exit;
     }
 
+    session_regenerate_id(true);
     $_SESSION['visitor_id'] = (int)$user['id'];
     $_SESSION['visitor_login'] = true;
-    $_SESSION['visitor_name'] = $user['nickname'] ?: $user['username'];
+    $_SESSION['visitor_name'] = $user['nickname'] ?? $user['username'] ?? '' ?? '' ?: $user['username'] ?? '';
 
     echo json_encode([
         'success' => true,
         'message' => '登录成功',
         'visitor' => [
             'id' => (int)$user['id'],
-            'username' => $user['username'],
-            'nickname' => $user['nickname'] ?: $user['username'],
+            'username' => $user['username'] ?? '',
+            'nickname' => $user['nickname'] ?? $user['username'] ?? '' ?? '' ?: $user['username'] ?? '',
         ]
     ]);
     exit;

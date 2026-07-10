@@ -3,7 +3,7 @@
  * 管理员 - 修改密码
  */
 $msg = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $oldPwd = $_POST['old_password'] ?? '';
     $newPwd = $_POST['new_password'] ?? '';
     $confirm = $_POST['confirm_password'] ?? '';
@@ -19,7 +19,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$_SESSION['admin_id']]);
         $admin = $stmt->fetch();
         
-        if (!password_verify($oldPwd, $admin['password'])) {
+        if (!$admin) {
+            $msg = '管理员不存在';
+        } elseif (!password_verify($oldPwd, $admin['password'])) {
             $msg = '原密码错误';
         } else {
             $hash = password_hash($newPwd, PASSWORD_DEFAULT);
