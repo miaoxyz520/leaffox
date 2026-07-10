@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `verify_token_expires` DATETIME DEFAULT NULL             COMMENT '令牌过期时间',
   `nickname`      VARCHAR(32)  DEFAULT ''                  COMMENT '显示昵称',
   `bio`           VARCHAR(200) DEFAULT '这个人很懒，什么都没写' COMMENT '个人简介',
+  `title_color`   VARCHAR(20)  DEFAULT ''                  COMMENT '标题颜色',
+  `desc_color`    VARCHAR(20)  DEFAULT ''                  COMMENT '描述颜色',
   `avatar`        VARCHAR(255) DEFAULT ''                  COMMENT '头像URL',
   `suffix`        VARCHAR(32)  DEFAULT '' UNIQUE           COMMENT '个性后缀(短链路由)',
 
@@ -63,6 +65,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `btn_color`     VARCHAR(20)  DEFAULT ''                  COMMENT '按钮文字色',
   `btn_outline`   VARCHAR(20)  DEFAULT ''                  COMMENT '空心边框色',
   `btn_arrow`     TINYINT(1)   DEFAULT 1                   COMMENT '显示右侧箭头 1显示',
+  `arrow_color`   VARCHAR(20)  DEFAULT ''                  COMMENT '箭头颜色',
 
   -- 公告
   `announcement`       TEXT     DEFAULT NULL               COMMENT '个人公告(HTML)',
@@ -79,17 +82,25 @@ CREATE TABLE IF NOT EXISTS `users` (
   `open_tip_qq`     TINYINT(1) DEFAULT 0                   COMMENT 'QQ内提示',
   `open_tip_douyin` TINYINT(1) DEFAULT 0                   COMMENT '抖音内提示',
   `open_tip_weibo`  TINYINT(1) DEFAULT 0                   COMMENT '微博内提示',
+  `tipping_enabled` TINYINT(1)   DEFAULT 0                 COMMENT '开启打赏',
+  `tipping_qrcode`  VARCHAR(500) DEFAULT ''                 COMMENT '打赏二维码URL',
+  `tipping_title`   VARCHAR(100) DEFAULT ''                 COMMENT '打赏标题',
 
   -- 视频自动展开
   `video_auto_expand` TINYINT(1) DEFAULT 0                 COMMENT '视频自动展开播放 1开启',
 
   -- 页脚设置
   `show_stats`    TINYINT(1)   DEFAULT 1                   COMMENT '前台显示统计 1显示',
+  `enable_likes`       TINYINT(1) DEFAULT 1              COMMENT '允许点赞',
+  `enable_comments`    TINYINT(1) DEFAULT 1              COMMENT '允许评论',
+  `enable_favorites`   TINYINT(1) DEFAULT 1              COMMENT '允许收藏',
+  `comment_audit_enabled` TINYINT(1) DEFAULT 0            COMMENT '评论审核',
   `footer_text`   VARCHAR(200) DEFAULT 'Powered by Leaffox主页系统'  COMMENT '自定义底部文字',
   `footer_align`  VARCHAR(10)  DEFAULT 'center'            COMMENT '页脚对齐: left/center/right',
   `page_template` VARCHAR(32)  DEFAULT 'default'          COMMENT '用户主页模版',
   -- 账号状态
   `is_active`     TINYINT(1)   DEFAULT 1                   COMMENT '状态 1正常 0封禁',
+  `is_guest`      TINYINT(1)   DEFAULT 0                   COMMENT '是否游客账号 1是',
   `last_ip`       VARCHAR(45)  DEFAULT ''                  COMMENT '最后登录IP',
   `last_login`    DATETIME     DEFAULT NULL                COMMENT '最后登录时间',
   `created_at`    DATETIME     DEFAULT CURRENT_TIMESTAMP   COMMENT '注册时间',
@@ -106,6 +117,7 @@ CREATE TABLE IF NOT EXISTS `links` (
   `title`       VARCHAR(100) NOT NULL                    COMMENT '卡片标题/文本内容',
   `url`         VARCHAR(500) NOT NULL DEFAULT ''          COMMENT '跳转地址(链接类型)',
   `icon`        VARCHAR(100) DEFAULT '🔗'                 COMMENT '卡片Emoji图标/图片URL',
+  `favicon_type` VARCHAR(10)  DEFAULT 'emoji'            COMMENT '图标来源: emoji/favicon/upload',
   `card_color`  VARCHAR(30)  DEFAULT '' COMMENT '卡片背景色',
   `text_color`  VARCHAR(20)  DEFAULT '#ffffff'           COMMENT '文字颜色',
   `sort_order`  INT UNSIGNED DEFAULT 50                  COMMENT '排序(越小越靠前)',
@@ -126,6 +138,7 @@ CREATE TABLE IF NOT EXISTS `links` (
 
   -- 视频模块专用
   `video_file`  VARCHAR(500) DEFAULT ''                  COMMENT '视频文件URL',
+  `video_source` VARCHAR(20)  DEFAULT 'file'             COMMENT '视频来源: file/bilibili/douyin/kuaishou',
   `video_loop`  TINYINT(1)   DEFAULT 0                   COMMENT '视频循环播放',
   `video_poster` VARCHAR(500) DEFAULT ''                 COMMENT '视频封面图',
 
@@ -194,7 +207,14 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `admin_email_login`  TINYINT(1)   DEFAULT 0              COMMENT '管理员可用邮箱登录',
   `admin_email`        VARCHAR(128) DEFAULT ''              COMMENT '管理员邮箱',
   `show_free_make_btn` TINYINT(1)   DEFAULT 1              COMMENT '用户主页底部显示“免费制作”悬浮按钮',
+  `style_data`         TEXT         DEFAULT NULL             COMMENT '自定义样式数据(JSON)',
   `site_template`      VARCHAR(32)  DEFAULT 'default'        COMMENT '系统首页模版',
+  `guest_mode`         TINYINT(1)   DEFAULT 0                COMMENT '游客模式 1开启',
+  `login_template`     VARCHAR(32)  DEFAULT 'default'        COMMENT '登录页模版',
+  `register_template`  VARCHAR(32)  DEFAULT 'default'        COMMENT '注册页模版',
+  `email_tpl_register` TEXT         DEFAULT NULL                COMMENT '注册邮件模板(HTML)',
+  `email_tpl_resetpwd`  TEXT         DEFAULT NULL                COMMENT '重置密码邮件模板(HTML)',
+  `email_tpl_verify`    TEXT         DEFAULT NULL                COMMENT '邮箱验证邮件模板(HTML)',
   `updated_at`  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='全站设置表';
 

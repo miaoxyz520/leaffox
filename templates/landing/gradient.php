@@ -15,7 +15,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title><?=h($siteName)?> - 专属个人主页</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="../../assets/css/fontawesome.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -40,12 +40,12 @@ body{
 .nav-btn-solid:hover{background:rgba(255,255,255,0.3);transform:translateY(-1px)}
 
 .hero{text-align:center;padding:90px 0 60px}
-.hero-badge{display:inline-block;padding:6px 20px;border-radius:20px;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);color:#fff;font-size:13px;font-weight:500;margin-bottom:24px;border:1px solid rgba(255,255,255,0.15)}
+.hero-badge{display:inline-block;padding:6px 20px;border-radius:12px;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);color:#fff;font-size:13px;font-weight:500;margin-bottom:24px;border:1px solid rgba(255,255,255,0.15)}
 .hero h1{font-size:48px;font-weight:900;line-height:1.15;margin-bottom:16px;text-shadow:0 4px 20px rgba(0,0,0,0.15)}
 .hero h1 .highlight{color:#ffd700;text-shadow:0 0 40px rgba(255,215,0,0.3)}
 .hero p{font-size:18px;color:rgba(255,255,255,0.85);max-width:520px;margin:0 auto;line-height:1.7;text-shadow:0 1px 4px rgba(0,0,0,0.1)}
 .hero-actions{display:flex;gap:14px;justify-content:center;margin-top:36px;flex-wrap:wrap}
-.hero-btn{padding:14px 36px;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.3s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.hero-btn{padding:14px 36px;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.3s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
 .hero-btn-primary{background:#fff;color:#667eea;border:none;box-shadow:0 8px 30px rgba(0,0,0,0.15)}
 .hero-btn-primary:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.25)}
 .hero-btn-secondary{background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.2);backdrop-filter:blur(4px)}
@@ -57,9 +57,9 @@ body{
 
 .features{padding:60px 0;border-top:1px solid rgba(255,255,255,0.12)}
 .feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.feature-card{background:rgba(255,255,255,0.1);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:26px 22px;transition:all 0.3s}
+.feature-card{background:rgba(255,255,255,0.1);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:26px 22px;transition:all 0.3s}
 .feature-card:hover{background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.25);transform:translateY(-5px)}
-.feature-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;background:rgba(255,255,255,0.15);color:#ffd700}
+.feature-icon{width:46px;height:46px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;background:rgba(255,255,255,0.15);color:#ffd700}
 .feature-card h3{font-size:17px;font-weight:700;margin-bottom:6px}
 .feature-card p{font-size:13px;color:rgba(255,255,255,0.7);line-height:1.7}
 
@@ -71,7 +71,7 @@ body{
 .step-card p{font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6}
 
 .cta{padding:60px 0 80px;text-align:center}
-.cta-box{background:rgba(255,255,255,0.08);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:48px 32px;max-width:560px;margin:0 auto}
+.cta-box{background:rgba(255,255,255,0.08);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:48px 32px;max-width:560px;margin:0 auto}
 .cta-box h2{font-size:26px;font-weight:800;margin-bottom:8px;text-shadow:0 2px 12px rgba(0,0,0,0.1)}
 .cta-box p{color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:28px}
 

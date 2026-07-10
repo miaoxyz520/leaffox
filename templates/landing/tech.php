@@ -15,8 +15,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title><?=h($siteName)?> - 专属个人主页</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Inter:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="../../assets/css/fontawesome.min.css">
+
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -97,6 +97,7 @@ body{
   .navbar{flex-wrap:wrap;gap:12px}.nav-actions{width:100%;justify-content:flex-end}
 }
 </style>
+<link rel="stylesheet" href="../assets/css/fonts.css">
 </head>
 <body>
 <div class="scanline"></div>

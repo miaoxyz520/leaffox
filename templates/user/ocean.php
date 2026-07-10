@@ -13,8 +13,6 @@
 return [
 'css' => '
 /* === Ocean 海洋蓝调 === */
-@import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap");
-
 body::before{
   content:"";
   position:fixed;inset:0;
@@ -54,7 +52,7 @@ body{
   background:rgba(255,255,255,0.06)!important;
   backdrop-filter:blur(20px)!important;
   border:1px solid rgba(255,255,255,0.08)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   box-shadow:0 8px 32px rgba(0,0,0,0.08)!important;
 }
 .card-glass:hover,.card-neumorphism:hover,.card-minimal:hover{
@@ -167,7 +165,7 @@ body{
   background:rgba(12,35,64,0.95)!important;
   backdrop-filter:blur(24px)!important;
   border:1px solid rgba(78,205,196,0.15)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
 }
 #passInput{
   background:rgba(255,255,255,0.06)!important;
@@ -178,7 +176,7 @@ body{
 .report-box{
   background:rgba(12,35,64,0.95)!important;
   border:1px solid rgba(78,205,196,0.1)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
 }
 .report-type-btn{
   background:rgba(255,255,255,0.04)!important;

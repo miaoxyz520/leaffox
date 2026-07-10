@@ -73,7 +73,7 @@ body::before{background:linear-gradient(180deg,rgba(0,0,0,0.3) 0%,rgba(0,0,0,0.0
   background:rgba(255,255,255,0.1)!important;
   backdrop-filter:blur(16px)!important;
   border:1px solid rgba(255,255,255,0.12)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
   color:rgba(255,255,255,0.9)!important;
 }
 .announcement-box:hover{background:rgba(255,255,255,0.15)!important;border-color:rgba(255,255,255,0.2)!important}
@@ -105,7 +105,7 @@ body::before{background:linear-gradient(180deg,rgba(0,0,0,0.3) 0%,rgba(0,0,0,0.0
 }
 .card-neumorphism{box-shadow:6px 6px 16px rgba(0,0,0,0.15),-6px -6px 16px rgba(255,255,255,0.05)!important}
 .card-neumorphism:hover{box-shadow:3px 3px 8px rgba(0,0,0,0.2),-3px -3px 8px rgba(255,255,255,0.08)!important}
-.card-minimal{border-radius:20px!important}
+.card-minimal{border-radius:12px!important}
 .card-minimal::before{display:none!important}
 .card-minimal:hover{padding-left:24px!important}
 /* 图标放大效果 */
@@ -119,15 +119,15 @@ body::before{background:linear-gradient(180deg,rgba(0,0,0,0.3) 0%,rgba(0,0,0,0.0
 .text-block{
   background:rgba(255,255,255,0.08)!important;
   backdrop-filter:blur(12px)!important;
-  border-radius:24px!important;
+  border-radius:12px!important;
   color:rgba(255,255,255,0.85)!important;
   padding:20px 24px!important;
 }
 .text-block:hover{background:rgba(255,255,255,0.12)!important;border-color:rgba(255,255,255,0.15)!important}
 
 /* ---- 图片模块 ---- */
-.picture-block{border-radius:24px!important}
-.picture-block img{border-radius:24px!important}
+.picture-block{border-radius:12px!important}
+.picture-block img{border-radius:12px!important}
 .picture-block:hover{transform:scale(1.05)!important;box-shadow:0 16px 48px rgba(0,0,0,0.3)!important}
 
 /* ---- 社交 ---- */

@@ -14,7 +14,12 @@ $settings = getSettings($db);
 $error = '';
 $success = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    // 速率限制
+    $rateCheck = checkRateLimit('forgot_pwd');
+    if (!$rateCheck['allowed']) {
+        $error = $rateCheck['message'];
+    } else {
     $email = trim($_POST['email'] ?? '');
     
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -48,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 require_once __DIR__ . '/../api/mail.php';
                 $resetUrl = BASE_URL . '/api/reset_password.php?token=' . urlencode($token);
                 $siteName = h($settings['site_name'] ?? 'Leaffox主页系统');
-                $username = h($user['username']);
+                $username = h($user['username'] ?? '');
                 $subject = "重置密码 - {$siteName}";
                 
                 $body = <<<HTML
@@ -79,6 +84,7 @@ HTML;
                 
                 $mailResult = sendMail($email, $subject, $body);
                 if ($mailResult['success']) {
+                    recordRateLimit('forgot_pwd');
                     $success = '重置链接已发送至您的邮箱，请查收（30分钟内有效）。';
                 } else {
                     $error = '邮件发送失败: ' . h($mailResult['message']);
@@ -86,6 +92,7 @@ HTML;
             }
         }
     }
+    } // 速率限制结束
 }
 ?>
 <!DOCTYPE html>
@@ -94,10 +101,10 @@ HTML;
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <?php $sn = getSiteName($db ?? null); ?><title>忘记密码 - <?=h($sn)?></title>
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="../assets/css/tailwind.css">
 <style>
 body{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);min-height:100vh}
-.glass-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:24px}
+.glass-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:12px}
 .input-field{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;border-radius:12px;padding:14px 18px;width:100%;outline:none;transition:all 0.3s}
 .input-field:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,0.2)}
 .input-field::placeholder{color:rgba(255,255,255,0.35)}

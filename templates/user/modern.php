@@ -46,7 +46,7 @@ body::before{display:none!important}
   backdrop-filter:blur(20px)!important;
   border:1px solid rgba(0,0,0,0.04)!important;
   box-shadow:0 2px 12px rgba(0,0,0,0.06)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
 }
 .card-glass:hover,.card-neumorphism:hover,.card-minimal:hover{
   box-shadow:0 8px 30px rgba(0,0,0,0.1)!important;

@@ -8,8 +8,6 @@
 return [
 'css' => '
 /* === Crimson 暗红玫瑰 === */
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;600&display=swap");
-
 body::before{
   content:"";position:fixed;inset:0;
   background:linear-gradient(160deg, #1a0a0a 0%, #2d0f0f 20%, #3d1212 40%, #2a0e0e 60%, #1a0808 100%)!important;
@@ -53,7 +51,7 @@ body{
   background:rgba(139,30,30,0.04)!important;
   backdrop-filter:blur(12px)!important;
   border:1px solid rgba(180,140,60,0.06)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   box-shadow:0 2px 20px rgba(0,0,0,0.08)!important;
   transition:all 0.4s ease!important;
 }
@@ -171,7 +169,7 @@ body{
   background:rgba(20,8,8,0.97)!important;
   backdrop-filter:blur(24px)!important;
   border:1px solid rgba(180,140,60,0.06)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
 }
 #passInput{
   background:rgba(180,140,60,0.03)!important;

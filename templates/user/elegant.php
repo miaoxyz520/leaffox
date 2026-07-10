@@ -12,8 +12,6 @@
  */
 return [
 'css' => '
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap");
-
 body{
   font-family:"Playfair Display","Noto Serif SC",Georgia,serif!important;
   background:linear-gradient(180deg,#1a1a2e 0%,#16213e 40%,#0f3460 100%)!important;
@@ -67,7 +65,7 @@ body::before{
   padding:8px 16px!important;
 }
 .top-link-bar .link-text{color:rgba(250,237,205,0.5)!important}
-.top-link-bar .bar-btn{background:rgba(212,163,115,0.08)!important;color:#d4a373!important;border-radius:20px!important}
+.top-link-bar .bar-btn{background:rgba(212,163,115,0.08)!important;color:#d4a373!important;border-radius:12px!important}
 .top-link-bar .bar-btn:hover{background:rgba(212,163,115,0.15)!important}
 
 /* ---- 公告 ---- */
@@ -75,7 +73,7 @@ body::before{
   background:rgba(212,163,115,0.04)!important;
   backdrop-filter:blur(16px)!important;
   border:1px solid rgba(212,163,115,0.08)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   color:rgba(250,237,205,0.8)!important;
   font-family:"Inter","Noto Sans SC",sans-serif!important;
   font-size:13px!important;
@@ -109,7 +107,7 @@ body::before{
 }
 .card-neumorphism{box-shadow:5px 5px 12px rgba(0,0,0,0.15),-5px -5px 12px rgba(250,237,205,0.02)!important}
 .card-neumorphism:hover{box-shadow:2px 2px 6px rgba(0,0,0,0.2),-2px -2px 6px rgba(250,237,205,0.03)!important}
-.card-minimal{border-radius:20px!important}
+.card-minimal{border-radius:12px!important}
 .card-minimal::before{background:linear-gradient(180deg,#d4a373,#faedcd)!important;width:2px!important;border-radius:0 2px 2px 0!important}
 
 /* 图标 */
@@ -134,7 +132,7 @@ body::before{
   font-family:"Inter","Noto Sans SC",sans-serif!important;
   background:rgba(250,237,205,0.03)!important;
   backdrop-filter:blur(12px)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
   color:rgba(250,237,205,0.7)!important;
   padding:18px 22px!important;
 }

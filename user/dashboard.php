@@ -15,6 +15,28 @@ $user = $stmt->fetch();
 
 if (!$user) { session_destroy(); redirect('./index.php'); }
 
+// ===== 游客过期检查 =====
+if (!empty($user['is_guest']) && !empty($user['guest_expires_at'])) {
+    $expiresTs = strtotime($user['guest_expires_at']);
+    if ($expiresTs <= time()) {
+        // 已过期，删除游客账号及相关数据
+        $db->beginTransaction();
+        try {
+            $db->exec("DELETE FROM stats WHERE user_id=$uid");
+            $db->exec("DELETE FROM links WHERE user_id=$uid");
+            $db->exec("DELETE FROM page_likes WHERE page_user_id=$uid OR visitor_id=$uid");
+            $db->exec("DELETE FROM page_comments WHERE page_user_id=$uid OR visitor_id=$uid");
+            $db->exec("DELETE FROM page_favorites WHERE page_user_id=$uid OR visitor_id=$uid");
+            $db->exec("DELETE FROM users WHERE id=$uid");
+            $db->commit();
+        } catch (Exception $e) {
+            $db->rollBack();
+        }
+        session_destroy();
+        redirect('./index.php?expired=1');
+    }
+}
+
 // 统计数据
 $myLinks   = (int)$db->query("SELECT COUNT(*) FROM links WHERE user_id=$uid")->fetchColumn();
 $myViews   = (int)$db->query("SELECT COUNT(*) FROM stats WHERE user_id=$uid AND type='view'")->fetchColumn();
@@ -27,10 +49,10 @@ $todayViews = (int)$db->query("SELECT COUNT(*) FROM stats WHERE user_id=$uid AND
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <?php $sn = getSiteName($db ?? null); ?><title>我的后台 - <?=h($sn)?></title>
-<script src="https://cdn.tailwindcss.com">
+<script src="../assets/js/tailwind.min.js">
 </script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js">
+<link rel="stylesheet" href="../assets/css/fontawesome.min.css">
+<script src="../assets/js/qrcode.min.js">
 </script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -42,34 +64,28 @@ $todayViews = (int)$db->query("SELECT COUNT(*) FROM stats WHERE user_id=$uid AND
   --user-text-muted:rgba(255,255,255,0.45);
   --user-sidebar-bg:rgba(30,27,75,0.5);
   --user-sidebar-border:rgba(255,255,255,0.06);
-  --user-card-bg:rgba(255,255,255,0.04);
-  --user-card-border:rgba(255,255,255,0.08);
-  --user-card-hover:rgba(255,255,255,0.07);
+  --user-card-bg:rgba(255,255,255,0.08);
+  --user-card-border:rgba(255,255,255,0.12);
   --user-nav-text:rgba(255,255,255,0.55);
   --user-nav-hover-bg:rgba(255,255,255,0.07);
-  --user-input-bg:rgba(255,255,255,0.06);
-  --user-input-border:rgba(255,255,255,0.12);
   --user-logo-text:#fff;
-  --user-overlay:rgba(0,0,0,0.5);
 }
 .user-light{
   --user-bg:#f1f5f9;
   --user-text:#334155;
   --user-text-primary:#0f172a;
   --user-text-secondary:#64748b;
-  --user-text-muted:#94a3b8;
+  --user-text-muted:#64748b;
   --user-sidebar-bg:rgba(255,255,255,0.85);
   --user-sidebar-border:rgba(0,0,0,0.08);
-  --user-card-bg:rgba(255,255,255,0.8);
-  --user-card-border:rgba(0,0,0,0.08);
-  --user-card-hover:rgba(255,255,255,0.95);
+  --user-card-bg:rgba(255,255,255,0.85);
+  --user-card-border:rgba(0,0,0,0.1);
   --user-nav-text:#64748b;
   --user-nav-hover-bg:rgba(0,0,0,0.05);
-  --user-input-bg:rgba(255,255,255,0.8);
-  --user-input-border:rgba(0,0,0,0.12);
   --user-logo-text:#0f172a;
-  --user-overlay:rgba(0,0,0,0.2);
 }
+.user-light .btn-ghost{background:rgba(0,0,0,0.06);color:var(--user-text-secondary)}
+.user-light .btn-ghost:hover{background:rgba(0,0,0,0.1);color:var(--user-text-primary)}
 body{
   background:var(--user-bg);
   color:var(--user-text);
@@ -81,7 +97,28 @@ body{
   transition:background 0.3s,color 0.3s;
 }
 
-/* ========== 侧边栏 ========== */
+/* ===== 汉堡按钮 ===== */
+.hamburger{
+  display:none;
+  position:fixed;
+  top:12px;left:12px;
+  z-index:60;
+  width:40px;height:40px;
+  background:rgba(30,27,75,0.8);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:10px;
+  color:var(--user-text);
+  font-size:16px;
+  cursor:pointer;
+  align-items:center;
+  justify-content:center;
+  transition:all 0.2s;
+}
+.hamburger:hover{background:rgba(99,102,241,0.3)}
+
+/* ===== 侧边栏 ===== */
 .sidebar{
   width:220px;
   background:var(--user-sidebar-bg);
@@ -98,180 +135,81 @@ body{
 .sidebar-logo{padding:20px;border-bottom:1px solid var(--user-sidebar-border);min-width:0}
 .sidebar-logo span{color:var(--user-logo-text);font-size:14px;font-weight:700;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-.nav-item{transition:all 0.2s;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:12px 14px;
-  margin:2px 10px;
-  border-radius:10px;
-  color:var(--user-nav-text);
-  cursor:pointer;
-  transition:all 0.2s;
-  text-decoration:none;
-  font-size:13px;
-  overflow:hidden;
-  min-height:44px; /* 移动端触摸友好 */
-}
+.acc-cat{border-bottom:1px solid var(--user-sidebar-border)}
+.acc-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;color:var(--user-nav-text);transition:all 0.2s;user-select:none}
+.acc-header:hover{color:var(--user-text-primary);background:var(--user-nav-hover-bg)}
+.acc-header .acc-header-left{display:flex;align-items:center;gap:10px;min-width:0}
+.acc-header .acc-header-left .acc-icon{width:20px;text-align:center;font-size:15px;flex-shrink:0}
+.acc-header .acc-header-left span{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acc-arrow{font-size:11px;opacity:0.5;transition:transform 0.25s ease;flex-shrink:0}
+.acc-cat.open .acc-arrow{transform:rotate(180deg)}
+.acc-body{display:none;padding:2px 0 6px}
+.acc-cat.open .acc-body{display:block}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px 9px 42px;margin:1px 8px;border-radius:8px;color:var(--user-nav-text);cursor:pointer;transition:all 0.2s;text-decoration:none;font-size:13px;min-height:38px}
 .nav-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nav-item:hover{color:var(--user-text-primary);background:var(--user-nav-hover-bg)}
 .nav-item.active{color:var(--user-text-primary);background:rgba(99,102,241,0.2);font-weight:600}
-.nav-item i{width:18px;text-align:center;font-size:14px;flex-shrink:0}
+.nav-item i{width:16px;text-align:center;font-size:13px;flex-shrink:0}
+.custom-scrollbar{scrollbar-width:thin}
+.custom-scrollbar::-webkit-scrollbar{width:4px}
+.custom-scrollbar::-webkit-scrollbar-thumb{background:var(--user-card-border);border-radius:4px}
 .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.theme-toggle-sidebar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 14px;margin:2px 10px 6px;border-radius:10px;
-  color:var(--user-nav-text);cursor:pointer;transition:all 0.2s;font-size:13px;user-select:none
-}
+
+.theme-toggle-sidebar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;margin:2px 10px 6px;border-radius:10px;color:var(--user-nav-text);cursor:pointer;transition:all 0.2s;font-size:13px;user-select:none}
 .theme-toggle-sidebar:hover{color:var(--user-text-primary);background:var(--user-nav-hover-bg)}
 .theme-toggle-sidebar .tt-label{display:flex;align-items:center;gap:10px}
 .theme-toggle-sidebar .tt-icon{width:18px;text-align:center;font-size:14px;flex-shrink:0}
-.theme-toggle-sidebar .tt-switch{
-  width:36px;height:20px;border-radius:10px;
-  background:var(--user-card-border);position:relative;transition:background 0.3s;flex-shrink:0
-}
-.theme-toggle-sidebar .tt-switch::after{
-  content:'';position:absolute;top:2px;left:2px;
-  width:16px;height:16px;border-radius:50%;
-  background:var(--user-logo-text);transition:transform 0.3s
-}
+.theme-toggle-sidebar .tt-switch{width:36px;height:20px;border-radius:10px;background:var(--user-card-border);position:relative;transition:background 0.3s;flex-shrink:0}
+.theme-toggle-sidebar .tt-switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--user-logo-text);transition:transform 0.3s}
 .user-light .theme-toggle-sidebar .tt-switch::after{transform:translateX(16px)}
 
-/* ========== 主内容区 ========== */
-.main{
-  margin-left:220px;
-  flex:1;
-  min-height:100vh;
-  min-height:100dvh;
-  padding:24px 28px;
-  max-width:960px;
-  width:100%;
-}
-
-/* ========== 统计卡片网格 ========== */
-.stats-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
-  gap:14px;
-  margin-bottom:24px;
-}
-.stat-card{
-  background:var(--user-card-bg);
-  border:1px solid var(--user-card-border);
-  border-radius:14px;
-  padding:18px;
-}
+/* ===== 主内容区 ===== */
+.main{margin-left:220px;flex:1;min-height:100vh;min-height:100dvh;padding:24px 28px;max-width:960px;width:100%}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{background:var(--user-card-bg);border:1px solid var(--user-card-border);border-radius:14px;padding:18px}
 .stat-card .stat-value{font-size:24px;font-weight:800;color:var(--user-text-primary)}
-.stat-card .stat-label{font-size:12px;color:rgba(255,255,255,0.45);margin-top:2px}
+.stat-card .stat-label{font-size:12px;color:var(--user-text-muted);margin-top:2px}
 
-/* ========== 通用卡片 ========== */
-.card-base{
-  background:var(--user-card-bg);
-  border:1px solid var(--user-card-border);
-  border-radius:16px;
-  padding:22px;
-  margin-bottom:20px;
-}
-.card-base h3{color:var(--user-text-primary);
-  font-size:14px;
-  font-weight:700;
-  color:#fff;
-  margin-bottom:14px;
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
+.card-base{background:var(--user-card-bg);border:1px solid var(--user-card-border);border-radius:16px;padding:22px;margin-bottom:20px}
+.card-base h3{color:var(--user-text-primary);font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 
-/* ========== 按钮 ========== */
-.btn-sm{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:10px 18px;  /* 增大触摸区域 */
-  border-radius:10px;
-  font-size:13px;
-  font-weight:500;
-  border:none;
-  cursor:pointer;
-  transition:all 0.2s;
-  text-decoration:none;
-  min-height:40px; /* 触摸友好 */
-}
+.btn-sm{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;border:none;cursor:pointer;transition:all 0.2s;text-decoration:none;min-height:40px}
 .btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
 .btn-primary:hover{box-shadow:0 4px 15px rgba(99,102,241,0.3)}
 .btn-ghost{background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7)}
 .btn-ghost:hover{background:rgba(255,255,255,0.1);color:#fff}
 
-/* ========== 表单控件 ========== */
-input,select,textarea{
-  background:rgba(255,255,255,0.06);
-  border:1px solid rgba(255,255,255,0.12);
-  color:#fff;
-  border-radius:10px;
-  padding:12px 14px;  /* 移动端更大内边距 */
-  width:100%;
-  outline:none;
-  transition:all 0.2s;
-  font-size:14px;     /* 移动端14px防缩放 */
-}
+input,select,textarea{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;border-radius:10px;padding:12px 14px;width:100%;outline:none;transition:all 0.2s;font-size:14px}
 input:focus,select:focus,textarea:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,0.15)}
 ::placeholder{color:rgba(255,255,255,0.3)}
 
-/* ========== 侧边栏遮罩 ========== */
-.sidebar-overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,0.5);
-  z-index:49;
-  opacity:0;
-  pointer-events:none;
-  transition:opacity 0.3s;
-}
+.sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:49;opacity:0;pointer-events:none;transition:opacity 0.3s}
 .sidebar-overlay.show{opacity:1;pointer-events:auto}
-
-/* ========== 全选复制 ========== */
 .select-all{-webkit-user-select:all;user-select:all}
 
-/* ========== 移动端适配 ========== */
+.toast-anim{animation:slideDown 0.3s ease}
+@keyframes slideDown{from{opacity:0;transform:translate(-50%,-20px) scale(0.9)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+
+/* ===== 响应式 ===== */
 @media(max-width:768px){
+  .hamburger{display:flex}
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
-  .main{
-    margin-left:0;
-    padding:16px 14px;  /* 更合适的移动端内边距 */
-  }
-  .stats-grid{
-    grid-template-columns:repeat(2,1fr);
-    gap:10px;
-  }
+  .main{margin-left:0;padding:16px 14px}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:10px}
   .stat-card{padding:14px}
   .stat-card .stat-value{font-size:20px}
   .stat-card .stat-label{font-size:11px}
   .card-base{padding:16px;border-radius:14px;margin-bottom:16px}
-  .card-base h3{color:var(--user-text-primary);font-size:13px;margin-bottom:10px}
-  .btn-sm{
-    padding:10px 14px;
-    font-size:12px;
-    min-height:38px;
-  }
+  .card-base h3{font-size:13px;margin-bottom:10px}
+  .btn-sm{padding:10px 14px;font-size:12px;min-height:38px}
 }
-
-/* 超小屏幕 (≤400px) */
 @media(max-width:400px){
   .main{padding:12px 10px}
   .stats-grid{grid-template-columns:1fr 1fr;gap:8px}
   .stat-card{padding:12px}
   .stat-card .stat-value{font-size:18px}
   .card-base{padding:14px;border-radius:12px}
-}
-
-/* Toast 提示动画 */
-.toast-anim{
-  animation:slideDown 0.3s ease;
-}
-@keyframes slideDown{
-  from{opacity:0;transform:translate(-50%,-20px) scale(0.9)}
-  to{opacity:1;transform:translate(-50%,0) scale(1)}
 }
 </style>
 </head>
@@ -291,20 +229,74 @@ input:focus,select:focus,textarea:focus{border-color:#818cf8;box-shadow:0 0 0 3p
     <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">L</div>
     <div class="min-w-0 flex-1"><span class="truncate">我的后台</span><div class="text-xs text-gray-500 truncate"><?=h(getSiteName($db))?></div></div>
   </div>
-  <nav class="flex-1 py-3">
-    <a href="?page=dashboard" class="nav-item <?=$subPage=='dashboard'?'active':''?>" onclick="closeSidebar()"><i class="fas fa-home"></i>控制台</a>
-    <a href="?page=profile" class="nav-item <?=$subPage=='profile'?'active':''?>" onclick="closeSidebar()"><i class="fas fa-user"></i>个人设置</a>
-    <a href="?page=links" class="nav-item <?=$subPage=='links'?'active':''?>" onclick="closeSidebar()"><i class="fas fa-link"></i>链接管理</a>
-    <a href="?page=stats" class="nav-item <?=$subPage=='stats'?'active':''?>" onclick="closeSidebar()"><i class="fas fa-chart-bar"></i>数据统计</a>
-    <a href="?page=settings" class="nav-item <?=$subPage=='settings'?'active':''?>" onclick="closeSidebar()"><i class="fas fa-cog"></i>主页设置</a>
+  <nav class="flex-1 py-2 overflow-y-auto custom-scrollbar">
+<?php
+$userCatConfig = [
+    'overview' => ['icon' => 'fa-chart-pie', 'label' => '概览', 'items' => [
+        ['dashboard', 'fa-home', '控制台'],
+    ]],
+    'content' => ['icon' => 'fa-layer-group', 'label' => '内容管理', 'items' => [
+        ['links', 'fa-link', '链接管理'],
+        ['comments', 'fa-comments', '我的评论'],
+        ['likes', 'fa-heart', '我的点赞'],
+        ['favorites', 'fa-star', '我的收藏'],
+    ]],
+    'settings' => ['icon' => 'fa-cog', 'label' => '设置', 'items' => [
+        ['profile', 'fa-user', '个人设置'],
+        ['settings', 'fa-palette', '主页设置'],
+    ]],
+    'stats' => ['icon' => 'fa-chart-bar', 'label' => '统计', 'items' => [
+        ['stats', 'fa-chart-line', '数据统计'],
+    ]],
+];
+$userCurrentCat = '';
+foreach ($userCatConfig as $ucKey => $ucVal) {
+    foreach ($ucVal['items'] as $ucItem) {
+        if ($ucItem[0] === $subPage) { $userCurrentCat = $ucKey; break; }
+    }
+    if ($userCurrentCat) break;
+}
+?>
+<?php foreach ($userCatConfig as $ucKey => $ucVal):
+    $isActive = ($userCurrentCat === $ucKey);
+    $openClass = $isActive ? ' open' : '';
+?>
+    <div class="acc-cat<?=$openClass?>">
+      <div class="acc-header" onclick="toggleAccordion(this)">
+        <div class="acc-header-left">
+          <i class="fas <?=$ucVal['icon']?> acc-icon"></i>
+          <span><?=h($ucVal['label'])?></span>
+        </div>
+        <i class="fas fa-chevron-down acc-arrow"></i>
+      </div>
+      <div class="acc-body"<?php if ($isActive): ?> style="display:block"<?php endif; ?>>
+<?php foreach ($ucVal['items'] as $ucItem):
+    $ucPageKey = $ucItem[0]; $ucIcon = $ucItem[1]; $ucLabel = $ucItem[2];
+    $isPageActive = ($subPage === $ucPageKey);
+?>
+        <a href="?page=<?=$ucPageKey?>" class="nav-item<?=$isPageActive?' active':''?>" onclick="closeSidebar()">
+          <i class="fas <?=$ucIcon?>"></i>
+          <span><?=h($ucLabel)?></span>
+        </a>
+<?php endforeach; ?>
+      </div>
+    </div>
+<?php endforeach; ?>
   </nav>
   <div class="p-4 border-t border-white/10">
     <div class="flex items-center gap-3 mb-3 px-2">
-      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"><?=h(mb_substr($user['nickname']?:$user['username'],0,1))?></div>
-      <div class="min-w-0 flex-1"><div class="text-sm text-white truncate"><?=h($user['nickname']?:$user['username'])?></div><div class="text-xs text-gray-500">ID: <?=$uid?></div></div>
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"><?=h(mb_substr($user['nickname'] ??  $user['username'] ?? '' ?? '',0,1))?></div>
+      <div class="min-w-0 flex-1"><div class="text-sm text-white truncate"><?=h($user['nickname'] ??  $user['username'] ?? '' ?? '')?></div><div class="text-xs text-gray-500">ID: <?=$uid?></div></div>
     </div>
-    <a href="./logout.php" class="nav-item text-red-400 hover:text-red-300" onclick="closeSidebar()"><i class="fas fa-sign-out-alt"></i>退出登录</a>
-    <div class="mt-3 px-2 pt-3 border-t border-white/5 text-[11px] text-gray-600">
+    <div class="theme-toggle-sidebar" onclick="toggleUserTheme()">
+      <span class="tt-label">
+        <span class="tt-icon" id="userThemeIcon"><i class="fas fa-moon"></i></span>
+        黑夜模式
+      </span>
+      <span class="tt-switch"></span>
+    </div>
+    <a href="./logout.php" class="nav-item text-red-400 hover:text-red-300 mt-1" onclick="closeSidebar()"><i class="fas fa-sign-out-alt"></i>退出登录</a>
+    <div class="mt-3 px-2 pt-3 border-t border-white/5 text-gray-600" style="font-size:11px">
       v1.0 · Developed by shadow
     </div>
   </div>
@@ -312,6 +304,57 @@ input:focus,select:focus,textarea:focus{border-color:#818cf8;box-shadow:0 0 0 3p
 
 <!-- 主内容区 -->
 <div class="main">
+
+<?php 
+$remainingSec = 1800;
+if (!empty($_SESSION['is_guest'])): 
+    $expiresTs = strtotime($user['guest_expires_at'] ?? '');
+    $remainingSec = $expiresTs ? max(0, $expiresTs - time()) : 1800;
+?>
+<div class="mb-5 p-4 md:p-5 rounded-2xl border border-amber-400/30 bg-gradient-to-r from-amber-500/10 to-orange-500/10" id="guestWarning">
+  <div class="flex items-start gap-3">
+    <div class="text-2xl flex-shrink-0">🔑</div>
+    <div class="flex-1 min-w-0">
+      <h3 class="text-amber-300 font-semibold text-sm md:text-base">游客模式 <span class="text-xs font-normal text-amber-400/60">（临时账号）</span></h3>
+      <p class="text-amber-200/70 text-xs md:text-sm mt-1">当前为游客身份，请在 <strong id="guestTimer" class="text-amber-100 text-sm">30:00</strong> 内设置账号密码并登录，否则账号将自动删除。</p>
+      <div class="flex gap-3 mt-3">
+        <a href="./settings.php?setup=1" class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-amber-900 font-semibold rounded-xl text-xs md:text-sm transition-all"><i class="fas fa-user-plus"></i> 立即设置账号密码</a>
+        <a href="./logout.php" class="inline-flex items-center gap-1.5 px-4 py-2 bg-white/10 hover:bg-white/15 text-amber-200 rounded-xl text-xs md:text-sm transition-all"><i class="fas fa-sign-out-alt"></i> 退出</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+    var remaining = <?=$remainingSec?>;
+    var timerEl = document.getElementById('guestTimer');
+    var warningEl = document.getElementById('guestWarning');
+    function updateTimer(){
+        if(remaining <= 0){
+            timerEl.textContent = '已过期';
+            warningEl.style.borderColor = 'rgba(239,68,68,0.5)';
+            warningEl.style.background = 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(220,38,38,0.1))';
+            // 5秒后刷新页面触发删除
+            setTimeout(function(){ location.reload(); }, 5000);
+            return;
+        }
+        var m = Math.floor(remaining / 60);
+        var s = remaining % 60;
+        timerEl.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+        // 最后5分钟变红，10分钟内变黄
+        if(remaining <= 300){
+            timerEl.style.color = '#f87171';
+            warningEl.style.borderColor = 'rgba(248,113,113,0.5)';
+        } else if(remaining <= 600){
+            timerEl.style.color = '#fbbf24';
+        }
+        remaining--;
+        setTimeout(updateTimer, 1000);
+    }
+    updateTimer();
+})();
+</script>
+<?php endif; ?>
 
 <?php if (!empty($_SESSION['impersonated_by_admin'])): ?>
 <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 mb-4 md:px-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
@@ -330,7 +373,7 @@ input:focus,select:focus,textarea:focus{border-color:#818cf8;box-shadow:0 0 0 3p
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
     <div>
       <h1 class="text-xl md:text-2xl font-bold"><i class="fas fa-hand-wave"></i> 欢迎回来</h1>
-      <p class="text-gray-500 text-sm mt-0.5"><?=h($user['nickname']?:$user['username'])?>，这是你的主页数据概览</p>
+      <p class="text-gray-500 text-sm mt-0.5"><?=h($user['nickname'] ??  $user['username'] ?? '' ?? '')?>，这是你的主页数据概览</p>
     </div>
     <a href="<?=BASE_URL?>/page/index.php?id=<?=$uid?>" target="_blank" class="btn-sm btn-primary self-start">
       <i class="fas fa-external-link-alt"></i> 预览主页
@@ -382,16 +425,16 @@ input:focus,select:focus,textarea:focus{border-color:#818cf8;box-shadow:0 0 0 3p
       <div id="qrcode-section" class="hidden mt-3 flex justify-center">
         <div class="relative inline-block">
           <div id="qrcode-canvas" class="rounded-2xl overflow-hidden bg-white p-3" style="width:170px;height:170px;"></div>
-          <?php if (!empty($user['avatar'])): ?>
+          <?php if (!empty($user['avatar'] ?? '')): ?>
           <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div class="w-9 h-9 rounded-lg overflow-hidden border-2 border-white shadow-lg bg-white">
-              <img src="<?=BASE_URL.'/'.$user['avatar']?>" class="w-full h-full object-cover" alt="">
+              <img src="<?php $av=$user['avatar']??''; echo $av?BASE_URL.'/'.h($av):'';?>" class="w-full h-full object-cover" alt="">
             </div>
           </div>
           <?php else: ?>
           <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div class="w-9 h-9 rounded-lg overflow-hidden border-2 border-white shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
-              <?=h(mb_substr($user['nickname']?:$user['username'],0,1))?>
+              <?=h(mb_substr($user['nickname'] ??  $user['username'] ?? '' ?? '',0,1))?>
             </div>
           </div>
           <?php endif; ?>
@@ -437,7 +480,7 @@ input:focus,select:focus,textarea:focus{border-color:#818cf8;box-shadow:0 0 0 3p
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 text-sm">
       <div class="flex items-center gap-2">
         <span class="text-gray-500 flex-shrink-0">用户名：</span>
-        <span class="text-white truncate"><?=h($user['username'])?></span>
+        <span class="text-white truncate"><?=h($user['username'] ?? '')?></span>
       </div>
       <div class="flex items-center gap-2">
         <span class="text-gray-500 flex-shrink-0">昵称：</span>
@@ -445,7 +488,7 @@ input:focus,select:focus,textarea:focus{border-color:#818cf8;box-shadow:0 0 0 3p
       </div>
       <div class="flex items-center gap-2">
         <span class="text-gray-500 flex-shrink-0">注册时间：</span>
-        <span class="text-white truncate"><?=$user['created_at']?></span>
+        <span class="text-white truncate"><?=$user['created_at'] ?? ''?></span>
       </div>
       <div class="flex items-center gap-2">
         <span class="text-gray-500 flex-shrink-0">账号状态：</span>
@@ -460,8 +503,14 @@ input:focus,select:focus,textarea:focus{border-color:#818cf8;box-shadow:0 0 0 3p
   <?php include __DIR__ . '/links.php'; ?>
 <?php elseif ($subPage === 'stats'): ?>
   <?php include __DIR__ . '/stats.php'; ?>
-<?php elseif ($subPage === 'settings'): ?>
+<?php elseif ($subPage === 'settings'): define('IN_DASHBOARD', true); ?>
   <?php include __DIR__ . '/settings.php'; ?>
+<?php elseif ($subPage === 'comments'): ?>
+  <?php include __DIR__ . '/my_comments.php'; ?>
+<?php elseif ($subPage === 'likes'): ?>
+  <?php include __DIR__ . '/my_likes.php'; ?>
+<?php elseif ($subPage === 'favorites'): ?>
+  <?php include __DIR__ . '/my_favorites.php'; ?>
 <?php endif; ?>
 
 </div>
@@ -475,6 +524,21 @@ function toggleSidebar(){
 function closeSidebar(){
   document.getElementById('sidebar')?.classList.remove('open');
   document.getElementById('sidebarOverlay')?.classList.remove('show');
+}
+
+// 手风琴切换
+function toggleAccordion(el){
+  var cat = el.closest('.acc-cat');
+  var body = cat.querySelector('.acc-body');
+  if(!body) return;
+  var isOpen = cat.classList.contains('open');
+  if(isOpen){
+    cat.classList.remove('open');
+    body.style.display = 'none';
+  } else {
+    cat.classList.add('open');
+    body.style.display = 'block';
+  }
 }
 
 // Escape 键关闭侧边栏
@@ -492,6 +556,39 @@ document.addEventListener('click', function(e){
     }
   }
 });
+
+// ====== 黑夜/白天切换 ======
+(function(){
+  var saved = localStorage.getItem('user_theme');
+  var html = document.documentElement;
+  if(saved === 'light'){
+    html.classList.add('user-light');
+    var icon = document.getElementById('userThemeIcon');
+    if(icon) icon.innerHTML = '<i class="fas fa-sun"></i>';
+    var label = document.querySelector('.theme-toggle-sidebar .tt-label');
+    if(label) label.childNodes[2].textContent = '白天模式';
+  } else {
+    html.classList.remove('user-light');
+  }
+})();
+function toggleUserTheme(){
+  var html = document.documentElement;
+  var icon = document.getElementById('userThemeIcon');
+  var isLight = html.classList.contains('user-light');
+  if(isLight){
+    html.classList.remove('user-light');
+    localStorage.setItem('user_theme','dark');
+    if(icon) icon.innerHTML = '<i class="fas fa-moon"></i>';
+    var label = document.querySelector('.theme-toggle-sidebar .tt-label');
+    if(label) label.childNodes[2].textContent = '黑夜模式';
+  } else {
+    html.classList.add('user-light');
+    localStorage.setItem('user_theme','light');
+    if(icon) icon.innerHTML = '<i class="fas fa-sun"></i>';
+    var label = document.querySelector('.theme-toggle-sidebar .tt-label');
+    if(label) label.childNodes[2].textContent = '白天模式';
+  }
+}
 
 // ====== 一键复制 ======
 function copyHomeUrl() {

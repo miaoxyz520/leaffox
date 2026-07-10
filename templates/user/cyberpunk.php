@@ -8,8 +8,6 @@
 return [
 'css' => '
 /* === Cyberpunk 赛博朋克 === */
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600;700&display=swap");
-
 body::before{
   content:"";position:fixed;inset:0;
   background:

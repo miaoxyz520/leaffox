@@ -15,7 +15,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title><?=h($siteName)?> - 专属个人主页</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="../../assets/css/fontawesome.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -32,7 +32,7 @@ body{background:#f8fafc;color:#0f172a;font-family:Inter,-apple-system,BlinkMacSy
 .nav-btn-solid:hover{background:#1e293b}
 
 .hero{text-align:center;padding:100px 0 70px}
-.hero-badge{display:inline-block;padding:5px 16px;border-radius:20px;background:#eef2ff;color:#6366f1;font-size:13px;font-weight:600;margin-bottom:24px}
+.hero-badge{display:inline-block;padding:5px 16px;border-radius:12px;background:#eef2ff;color:#6366f1;font-size:13px;font-weight:600;margin-bottom:24px}
 .hero h1{font-size:46px;font-weight:900;line-height:1.15;margin-bottom:18px;color:#0f172a;letter-spacing:-0.5px}
 .hero h1 .highlight{background:linear-gradient(135deg,#6366f1,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hero p{font-size:18px;color:#64748b;max-width:520px;margin:0 auto;line-height:1.7}
@@ -48,7 +48,7 @@ body{background:#f8fafc;color:#0f172a;font-family:Inter,-apple-system,BlinkMacSy
 .section-title p{color:#64748b;font-size:15px}
 .features{padding:70px 0;border-top:1px solid #e2e8f0}
 .feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-.feature-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px 24px;transition:all 0.2s}
+.feature-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:28px 24px;transition:all 0.2s}
 .feature-card:hover{border-color:#cbd5e1;box-shadow:0 4px 20px rgba(0,0,0,0.04);transform:translateY(-3px)}
 .feature-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:16px;color:#6366f1}
 .feature-card h3{font-size:17px;font-weight:700;margin-bottom:6px;color:#0f172a}
@@ -62,7 +62,7 @@ body{background:#f8fafc;color:#0f172a;font-family:Inter,-apple-system,BlinkMacSy
 .step-card p{font-size:13px;color:#64748b;line-height:1.6}
 
 .cta{padding:60px 0 80px;text-align:center}
-.cta-box{background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:48px 32px;max-width:580px;margin:0 auto}
+.cta-box{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:48px 32px;max-width:580px;margin:0 auto}
 .cta-box h2{font-size:24px;font-weight:800;color:#0f172a;margin-bottom:8px}
 .cta-box p{color:#64748b;font-size:14px;margin-bottom:28px}
 .footer{border-top:1px solid #e2e8f0;padding:24px 0;text-align:center;font-size:13px;color:#94a3b8}

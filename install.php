@@ -5,6 +5,9 @@
  */
 require_once __DIR__ . '/config.php';
 
+// 初始化变量（防止数据库未连接时出现 Undefined variable 警告）
+$db = $db ?? null;
+
 $step = max(1, (int)($_GET['step'] ?? 1));
 $error = '';
 $success = '';
@@ -19,21 +22,21 @@ if (!empty($_SESSION['install_db_error'])) {
 // 检查 config.php 是否可写
 $configFile = __DIR__ . '/config.php';
 $configWritable = is_writable($configFile);
-if (!$configWritable && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+if (!$configWritable && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     // 只在首次加载时警告，提交后没必要
     $error = '<i class="fas fa-exclamation-triangle" style="color:#f59e0b"></i> config.php 文件不可写！安装程序无法保存配置。<br>请执行：<code>chmod 666 ' . $configFile . '</code>';
 }
 
 // 检测是否已安装（连接失败或未安装都视为未安装）
 $alreadyInstalled = false;
-if ($db) {
+if (isset($db) && $db) {
     try {
         $stmt = $db->query("SELECT COUNT(*) FROM admin");
         if ($stmt && $stmt->fetchColumn() > 0) $alreadyInstalled = true;
     } catch (Exception $e) {}
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $dbType = $_POST['db_type'] ?? 'mysql';
     
     if ($dbType === 'sqlite') {
@@ -41,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dbPath = __DIR__ . '/data/leaffox.db';
         // 如果已存在且已有数据，询问是否覆盖
         if (file_exists($dbPath) && filesize($dbPath) > 0) {
-            if (empty($_POST['overwrite'])) {
+            if (empty($_POST['overwrite'] ?? '')) {
                 $error = '数据库文件已存在，勾选「覆盖已有数据」可重新安装';
             }
         }
@@ -83,21 +86,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // 写入 config.php 中的 DB 配置（标记为 sqlite）
                 $configContent = file_get_contents(__DIR__ . '/config.php');
-                $configContent = preg_replace(
-                    "/define\('DB_TYPE',\s*'mysql'\);/",
-                    "define('DB_TYPE', 'sqlite');",
-                    $configContent
-                );
-                // 同时也更新 BASE_URL
-                $host = $_SERVER['HTTP_HOST'] ?? '127.0.0.1';
-                $configContent = preg_replace(
-                    "/define\('BASE_URL',\s*'[^']+'\);/",
-                    "define('BASE_URL', 'http://$host');",
-                    $configContent
-                );
-                file_put_contents(__DIR__ . '/config.php', $configContent);
+                if ($configContent === false) $configContent = '';
+                if (!empty($configContent)) {
+                    $configContent = preg_replace(
+                        "/define('DB_TYPE',\s*'mysql'\);/",
+                        "define('DB_TYPE', 'sqlite');",
+                        $configContent
+                    );
+                    // 同时也更新 BASE_URL
+                    $host = $_SERVER['HTTP_HOST'] ?? '127.0.0.1';
+                    $configContent = preg_replace(
+                        "/define('BASE_URL',\s*'[^']+'\);/",
+                        "define('BASE_URL', 'http://$host');",
+                        $configContent
+                    );
+                    file_put_contents(__DIR__ . '/config.php', $configContent);
+                }
                 
-                $success = "<i class=\"fas fa-check-circle\" style=\"color:#10b981\"></i> SQLite 安装成功！数据库文件: data/leaffox.db<br>默认管理员账号: <b>admin</b> / <b>admin123</b>";
+                $success = '<i class="fas fa-check-circle" style="color:#10b981"></i> SQLite 安装成功！数据库文件: data/leaffox.db<br>默认管理员账号: <b>admin</b> / <b>admin123</b>';
             } catch (Exception $e) {
                 $error = 'SQLite 安装失败: ' . $e->getMessage();
             }
@@ -114,8 +120,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $testDsn = "mysql:host=$dbHost;port=$dbPort;charset=utf8mb4";
             $testDb = new PDO($testDsn, $dbUser, $dbPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
             
-            $testDb->exec("CREATE DATABASE IF NOT EXISTS `$dbName` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-            $testDb->exec("USE `$dbName`");
+            $safeDbName = str_replace('`', '``', $dbName);
+            $testDb->exec("CREATE DATABASE IF NOT EXISTS `$safeDbName` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $testDb->exec("USE `$safeDbName`");
             
             $sqlFile = __DIR__ . '/install.sql';
             if (file_exists($sqlFile)) {
@@ -133,61 +140,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // 写入配置
             $configContent = file_get_contents(__DIR__ . '/config.php');
-            $configContent = preg_replace(
-                "/define\('DB_TYPE',\s*'[^']*'\);/",
-                "define('DB_TYPE', 'mysql');",
-                $configContent
-            );
-            $configContent = preg_replace(
-                "/define\('DB_HOST',\s*'[^']*'\);/",
-                "define('DB_HOST', '$dbHost');",
-                $configContent
-            );
-            $configContent = preg_replace(
-                "/define\('DB_PORT',\s*'[^']*'\);/",
-                "define('DB_PORT', '$dbPort');",
-                $configContent
-            );
-            $configContent = preg_replace(
-                "/define\('DB_NAME',\s*'[^']*'\);/",
-                "define('DB_NAME', '$dbName');",
-                $configContent
-            );
-            $configContent = preg_replace(
-                "/define\('DB_USER',\s*'[^']*'\);/",
-                "define('DB_USER', '$dbUser');",
-                $configContent
-            );
-            $configContent = preg_replace(
-                "/define\('DB_PASS',\s*'[^']*'\);/",
-                "define('DB_PASS', '$dbPass');",
-                $configContent
-            );
-            // 确保 MySQL 使用 TCP 连接方式（兼容性更好）
-            if (!preg_match('/define\(\'DB_USE_TCP\'/', $configContent)) {
+            if ($configContent === false) $configContent = '';
+            
+            if (!empty($configContent)) {
+                // 注意：使用单引号字符串避免 PHP 双引号内 \)、\; 等产生弃用警告
                 $configContent = preg_replace(
-                    "/(define\('DB_CHARSET.*?\);)/",
-                    "$1
+                    '/define\(\'DB_TYPE\',\s*\'[^\']*\'\);/',
+                    "define('DB_TYPE', 'mysql');",
+                    $configContent
+                );
+                $configContent = preg_replace(
+                    '/define\(\'DB_HOST\',\s*\'[^\']*\'\);/',
+                    "define('DB_HOST', '$dbHost');",
+                    $configContent
+                );
+                $configContent = preg_replace(
+                    '/define\(\'DB_PORT\',\s*\'[^\']*\'\);/',
+                    "define('DB_PORT', '$dbPort');",
+                    $configContent
+                );
+                $configContent = preg_replace(
+                    '/define\(\'DB_NAME\',\s*\'[^\']*\'\);/',
+                    "define('DB_NAME', '$dbName');",
+                    $configContent
+                );
+                $configContent = preg_replace(
+                    '/define\(\'DB_USER\',\s*\'[^\']*\'\);/',
+                    "define('DB_USER', '$dbUser');",
+                    $configContent
+                );
+                $configContent = preg_replace(
+                    '/define\(\'DB_PASS\',\s*\'[^\']*\'\);/',
+                    "define('DB_PASS', '$dbPass');",
+                    $configContent
+                );
+                // 确保 MySQL 使用 TCP 连接方式（兼容性更好）
+                if (!preg_match('/define\(\'DB_USE_TCP\'/', $configContent)) {
+                    $configContent = preg_replace(
+                        '/(define\(\'DB_CHARSET.*?\'\)\;)/',
+                        "$1
 // 使用 TCP 方式连接 MySQL (install.php 自动设置)
 define('DB_USE_TCP', true);",
-                    $configContent
-                );
-            } else {
+                        $configContent
+                    );
+                } else {
+                    $configContent = preg_replace(
+                        '/define\(\'DB_USE_TCP\',\s*(true|false)\)\;/',
+                        "define('DB_USE_TCP', true);",
+                        $configContent
+                    );
+                }
+                $host = $_SERVER['HTTP_HOST'] ?? '127.0.0.1';
                 $configContent = preg_replace(
-                    "/define\('DB_USE_TCP',\s*(true|false)\);/",
-                    "define('DB_USE_TCP', true);",
+                    '/define\(\'BASE_URL\',\s*\'[^\']+\'\);/',
+                    "define('BASE_URL', 'http://$host');",
                     $configContent
                 );
+                file_put_contents(__DIR__ . '/config.php', $configContent);
             }
-            $host = $_SERVER['HTTP_HOST'] ?? '127.0.0.1';
-            $configContent = preg_replace(
-                "/define\('BASE_URL',\s*'[^']+'\);/",
-                "define('BASE_URL', 'http://$host');",
-                $configContent
-            );
-            file_put_contents(__DIR__ . '/config.php', $configContent);
             
-            $success = "<i class=\"fas fa-check-circle\" style=\"color:#10b981\"></i> MySQL 安装成功！默认管理员账号: <b>admin</b> / <b>admin123</b>";
+            $success = '<i class="fas fa-check-circle" style="color:#10b981"></i> MySQL 安装成功！默认管理员账号: <b>admin</b> / <b>admin123</b>';
         } catch (Exception $e) {
             $error = '数据库连接失败: ' . $e->getMessage();
         }
@@ -200,22 +212,33 @@ define('DB_USE_TCP', true);",
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Leaffox主页系统 安装向导</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/tailwind.css">
+<link rel="stylesheet" href="assets/css/fontawesome.min.css">
 <style>
+*{margin:0;padding:0;box-sizing:border-box}
 body{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-.install-box{background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);border-radius:24px;padding:40px;max-width:600px;width:100%}
-input{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;border-radius:10px;padding:12px 16px;width:100%;outline:none;transition:all 0.2s;font-size:14px;box-sizing:border-box}
+.install-box{background:rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:40px;max-width:600px;width:100%}
+input{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;border-radius:10px;padding:12px 16px;width:100%;outline:none;transition:all 0.2s;font-size:14px}
 input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(129,140,248,0.15)}
 input::placeholder{color:rgba(255,255,255,0.3)}
 label{display:block;color:rgba(255,255,255,0.7);font-size:13px;font-weight:500;margin-bottom:6px}
-.btn-primary{background:linear-gradient(135deg,#2563eb,#2563eb);color:#fff;border:none;border-radius:12px;padding:14px 32px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s;display:inline-block;text-align:center}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 25px rgba(37,99,235,0.35)}
+.btn-primary{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;border:none;border-radius:12px;padding:14px 32px;font-size:15px;font-weight:600;cursor:pointer;transition:all 0.3s;display:inline-block;text-align:center;text-decoration:none}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 25px rgba(79,70,229,0.35)}
 .tab-bar{display:flex;background:rgba(255,255,255,0.05);border-radius:12px;padding:4px;margin-bottom:24px}
 .tab-btn{flex:1;padding:10px;text-align:center;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;transition:all 0.2s;border:none;background:transparent;color:rgba(255,255,255,0.5)}
-.tab-btn.active{background:rgba(37,99,235,0.25);color:#a5b4fc}
+.tab-btn.active{background:rgba(79,70,229,0.25);color:#a5b4fc}
 .tab-btn:hover{color:rgba(255,255,255,0.8)}
 .tab-content{display:none}
 .tab-content.active{display:block}
+@media(max-width:640px){
+.install-box{padding:24px 20px}
+.grid.grid-cols-2{grid-template-columns:1fr!important}
+body{padding:12px}
+.tab-bar{gap:4px}
+.tab-btn{font-size:13px;padding:8px 6px}
+.btn-primary{padding:12px 24px;font-size:14px}
+}
+code{background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:4px;font-size:12px}
 </style>
 </head>
 <body>

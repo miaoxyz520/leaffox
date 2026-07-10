@@ -13,8 +13,6 @@
 return [
 'css' => '
 /* === Nord 北欧极简冷色 === */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
-
 body::before{
   content:"";position:fixed;inset:0;
   background:linear-gradient(160deg, #2e3440 0%, #3b4252 30%, #434c5e 60%, #4c566a 100%)!important;
@@ -163,7 +161,7 @@ body{
   background:rgba(46,52,64,0.96)!important;
   backdrop-filter:blur(24px)!important;
   border:1px solid rgba(76,86,106,0.12)!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
 }
 #passInput{
   background:rgba(67,76,94,0.15)!important;

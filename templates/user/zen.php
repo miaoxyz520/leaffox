@@ -8,8 +8,6 @@
 return [
 'css' => '
 /* === Zen 禅意极简 === */
-@import url("https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Inter:wght@300;400;600&display=swap");
-
 body::before{
   content:"";position:fixed;inset:0;
   background:linear-gradient(170deg, #f5f0e8 0%, #e8e0d0 50%, #f0ebe3 100%)!important;

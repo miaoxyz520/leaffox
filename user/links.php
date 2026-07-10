@@ -7,24 +7,24 @@ $uid = (int)$_SESSION['user_id'];
 $msg = '';
 
 // 新增/编辑
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $action = $_POST['action'];
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'] ?? '';
     
     if ($action === 'add' || $action === 'edit') {
-        $type       = in_array($_POST['type'] ?? 'link', ['link','text','image','picture','video']) ? $_POST['type'] : 'link';
+        $type       = in_array($_POST['type'] ?? 'link', ['link','text','image','picture','video']) ? $_POST['type'] ?? '' : 'link';
         $title      = safeSubstr(trim($_POST['title'] ?? ''), 100);
         $url        = safeSubstr(trim($_POST['url'] ?? ''), 500);
         $icon       = safeSubstr(trim($_POST['icon'] ?? '<i class="fas fa-link"></i>'), 100);
         $cardColor  = safeSubstr(trim($_POST['card_color'] ?? 'rgba(255,255,255,0.08)'), 20);
         $textColor  = safeSubstr(trim($_POST['text_color'] ?? '#ffffff'), 20);
         $sortOrder  = (int)($_POST['sort_order'] ?? 50);
-        $outline    = (int)(!empty($_POST['outline']));
+        $outline    = (int)(!empty($_POST['outline'] ?? ''));
         $passcode   = safeSubstr(trim($_POST['passcode'] ?? ''), 10);
         $popupImg   = safeSubstr(trim($_POST['popup_img'] ?? ''), 500);
-        $textCenter = (int)(!empty($_POST['text_center']));
+        $textCenter = (int)(!empty($_POST['text_center'] ?? ''));
         $videoFile  = safeSubstr(trim($_POST['video_file'] ?? ''), 500);
-        $videoSource= in_array($_POST['video_source'] ?? 'file', ['file','bilibili','douyin','kuaishou']) ? $_POST['video_source'] : 'file';
-        $videoLoop  = (int)(!empty($_POST['video_loop']));
+        $videoSource= in_array($_POST['video_source'] ?? 'file', ['file','bilibili','douyin','kuaishou']) ? $_POST['video_source'] ?? '' : 'file';
+        $videoLoop  = (int)(!empty($_POST['video_loop'] ?? ''));
         $videoPoster= safeSubstr(trim($_POST['video_poster'] ?? ''), 500);
         $videoExtUrl= safeSubstr(trim($_POST['video_external_url'] ?? ''), 500);
         
@@ -71,7 +71,7 @@ $linkList = $links->fetchAll();
 $typeLabels = ['link'=>'<i class="fas fa-link"></i> 链接','text'=>'<i class="fas fa-edit"></i> 文字','image'=>'<i class="fas fa-image"></i> 弹图','picture'=>'<i class="fas fa-image"></i> 图片','video'=>'<i class="fas fa-video"></i> 视频'];
 $typeBadges = ['link'=>'bg-blue-500/20 text-blue-300','text'=>'bg-green-500/20 text-green-300','image'=>'bg-orange-500/20 text-orange-300','picture'=>'bg-pink-500/20 text-pink-300','video'=>'bg-purple-500/20 text-purple-300'];
 ?>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="../assets/css/fontawesome.min.css">
 <h1 class="text-xl font-bold mb-2"><i class="fas fa-cube"></i> 模块管理</h1>
 <p class="text-gray-500 text-sm mb-6">添加不同类型的模块到你的主页（链接/文字/图片/弹窗图/视频）</p>
 
@@ -244,7 +244,7 @@ $typeBadges = ['link'=>'bg-blue-500/20 text-blue-300','text'=>'bg-green-500/20 t
 
 <style>
 .modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;animation:fadeIn 0.25s ease}
-.modal-box.sm{background:rgba(20,20,35,0.96);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:28px;max-width:440px;width:92%;max-height:90vh;overflow-y:auto;animation:slideUp 0.3s ease}
+.modal-box.sm{background:rgba(20,20,35,0.96);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:28px;max-width:440px;width:92%;max-height:90vh;overflow-y:auto;animation:slideUp 0.3s ease}
 
 /* ===== 美化输入框 ===== */
 .modal-box input[type="text"],

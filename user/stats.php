@@ -19,7 +19,7 @@ $topLinks->execute([$uid]);
 $topLinksData = $topLinks->fetchAll();
 
 // 总览数据
-$totalViews  = (int)$db->query("SELECT COUNT(*) FROM stats WHERE user_id=$uid AND type='view'")->fetchColumn();
+$totalViews = (int)$db->query("SELECT COUNT(*) FROM stats WHERE user_id=$uid AND type='view'")->fetchColumn();
 $totalClicks = (int)$db->query("SELECT COUNT(*) FROM stats WHERE user_id=$uid AND type='click'")->fetchColumn();
 $todayViews  = (int)$db->query("SELECT COUNT(*) FROM stats WHERE user_id=$uid AND type='view' AND DATE(created_at)='" . date('Y-m-d') . "'")->fetchColumn();
 $todayClicks = (int)$db->query("SELECT COUNT(*) FROM stats WHERE user_id=$uid AND type='click' AND DATE(created_at)='" . date('Y-m-d') . "'")->fetchColumn();
@@ -43,7 +43,7 @@ $todayClicks = (int)$db->query("SELECT COUNT(*) FROM stats WHERE user_id=$uid AN
       <?php foreach ($vFinal as $i=>$v): ?>
       <div class="flex-1 flex flex-col items-center justify-end h-full">
         <span class="text-xs text-gray-400 mb-1"><?=$v?></span>
-        <div class="w-full max-w-[32px] rounded-t-lg bg-gradient-to-t from-indigo-500 to-purple-500 transition-all" style="height:<?=max(6,($v/$maxV)*110)?>px"></div>
+        <div class="w-full rounded-t-lg transition-all" style="max-width:32px;background:linear-gradient(to top,#6366f1,#a855f7);height:<?=max(6,($v/$maxV)*110)?>px"></div>
         <span class="text-xs text-gray-500 mt-2"><?=$vLabels[$i]?></span>
       </div>
       <?php endforeach; ?>
@@ -60,7 +60,7 @@ $todayClicks = (int)$db->query("SELECT COUNT(*) FROM stats WHERE user_id=$uid AN
       <?php foreach ($topLinksData as $i=>$l): ?>
       <div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
         <span class="text-sm"><?=($i==0?'<i class="fas fa-medal" style="color:#fbbf24"></i>':($i==1?'<i class="fas fa-medal" style="color:#94a3b8"></i>':($i==2?'<i class="fas fa-medal" style="color:#d97706"></i>':'#'.($i+1))))?></span>
-        <span class="text-lg"><?=h($l['icon'])?></span>
+        <span class="text-lg"><?=$l['icon']?></span>
         <span class="flex-1 text-sm text-white truncate"><?=h($l['title'])?></span>
         <span class="text-indigo-400 text-sm font-bold"><?=$l['real_clicks']?></span>
       </div>

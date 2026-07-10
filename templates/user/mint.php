@@ -8,8 +8,6 @@
 return [
 'css' => '
 /* === Mint 薄荷清爽 === */
-@import url("https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Inter:wght@300;400;600&display=swap");
-
 body::before{
   content:"";position:fixed;inset:0;
   background:linear-gradient(135deg, #e0f5e8 0%, #c8efe0 25%, #b0e8d8 50%, #c8efe0 75%, #e0f5e8 100%)!important;
@@ -50,7 +48,7 @@ body{
   background:rgba(255,255,255,0.5)!important;
   backdrop-filter:blur(8px)!important;
   border:1px solid rgba(255,255,255,0.6)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
   box-shadow:0 4px 20px rgba(80,180,150,0.04)!important;
   transition:all 0.3s ease!important;
 }
@@ -72,7 +70,7 @@ body{
 .card-icon{
   background:rgba(80,180,150,0.12)!important;
   color:#50b496!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
 }
 .card-arrow{
   color:rgba(80,180,150,0.2)!important;
@@ -82,7 +80,7 @@ body{
   background:rgba(255,255,255,0.45)!important;
   border:1px solid rgba(255,255,255,0.5)!important;
   backdrop-filter:blur(8px)!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   color:#1a4a3a!important;
 }
 .top-link-bar .link-text{
@@ -94,7 +92,7 @@ body{
   background:rgba(255,255,255,0.3)!important;
   border:1px solid rgba(255,255,255,0.4)!important;
   color:rgba(26,74,58,0.35)!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   transition:all 0.3s!important;
 }
 .social-item:hover{
@@ -115,7 +113,7 @@ body{
 .announcement-box{
   background:rgba(255,255,255,0.3)!important;
   border:1px solid rgba(80,180,150,0.1)!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   color:rgba(26,74,58,0.45)!important;
 }
 
@@ -129,7 +127,7 @@ body{
   background:rgba(80,180,150,0.1)!important;
   border:1px solid rgba(80,180,150,0.15)!important;
   color:#50b496!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   font-weight:700!important;
 }
 .free-make-btn:hover{
@@ -145,18 +143,18 @@ body{
 .text-block{
   background:rgba(255,255,255,0.25)!important;
   border:1px solid rgba(255,255,255,0.4)!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   color:rgba(26,74,58,0.4)!important;
 }
 .picture-block{
-  border-radius:14px!important;
+  border-radius:8px!important;
   border:1px solid rgba(255,255,255,0.4)!important;
 }
 .tipping-btn{
   background:rgba(80,180,150,0.1)!important;
   border:1px solid rgba(80,180,150,0.15)!important;
   color:#50b496!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   font-weight:700!important;
 }
 .tipping-btn:hover{
@@ -167,7 +165,7 @@ body{
   background:rgba(224,245,232,0.98)!important;
   backdrop-filter:blur(20px)!important;
   border:1px solid rgba(80,180,150,0.1)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
 }
 #passInput{
   background:rgba(255,255,255,0.5)!important;

@@ -13,8 +13,6 @@
 return [
 'css' => '
 /* === Forest 森林绿意 === */
-@import url("https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;600&display=swap");
-
 body::before{
   content:"";position:fixed;inset:0;
   background:linear-gradient(160deg, #1a2e1f 0%, #2d4a33 30%, #4a6741 60%, #6b8c5c 100%)!important;
@@ -51,7 +49,7 @@ body{
   background:rgba(255,255,255,0.05)!important;
   backdrop-filter:blur(12px)!important;
   border:1px solid rgba(255,255,255,0.06)!important;
-  border-radius:24px!important;
+  border-radius:12px!important;
   box-shadow:0 4px 20px rgba(0,0,0,0.06)!important;
 }
 .card-glass:hover,.card-neumorphism:hover,.card-minimal:hover{
@@ -114,7 +112,7 @@ body{
 .announcement-box{
   background:rgba(255,255,255,0.03)!important;
   border:1px solid rgba(107,140,92,0.1)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   color:rgba(234,245,230,0.7)!important;
 }
 .free-make-btn{
@@ -138,18 +136,18 @@ body{
 .text-block{
   background:rgba(255,255,255,0.03)!important;
   border:1px solid rgba(255,255,255,0.06)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   color:rgba(234,245,230,0.65)!important;
 }
 .picture-block{
-  border-radius:16px!important;
+  border-radius:10px!important;
   border:1px solid rgba(255,255,255,0.06)!important;
 }
 .report-box,.modal-box,#passModal{
   background:rgba(26,46,31,0.95)!important;
   backdrop-filter:blur(24px)!important;
   border:1px solid rgba(107,140,92,0.12)!important;
-  border-radius:24px!important;
+  border-radius:12px!important;
 }
 #passInput{
   background:rgba(255,255,255,0.05)!important;

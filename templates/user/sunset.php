@@ -13,8 +13,6 @@
 return [
 'css' => '
 /* === Sunset 日落暖色 === */
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Nunito:wght@400;600;700&display=swap");
-
 body::before{
   content:"";position:fixed;inset:0;
   background:linear-gradient(135deg, #2d1b2e 0%, #5c2a3d 20%, #c2574d 50%, #f4a460 80%, #ffd8a8 100%)!important;
@@ -52,7 +50,7 @@ body{
   background:rgba(255,255,255,0.05)!important;
   backdrop-filter:blur(16px)!important;
   border:1px solid rgba(255,255,255,0.06)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
   box-shadow:0 4px 20px rgba(0,0,0,0.05)!important;
 }
 .card-glass:hover,.card-neumorphism:hover,.card-minimal:hover{
@@ -156,7 +154,7 @@ body{
   background:rgba(45,27,46,0.95)!important;
   backdrop-filter:blur(24px)!important;
   border:1px solid rgba(244,164,96,0.12)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
 }
 #passInput{
   background:rgba(255,255,255,0.05)!important;

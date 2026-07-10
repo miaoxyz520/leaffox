@@ -13,8 +13,6 @@
 return [
 'css' => '
 /* === Dracula 暗紫高对比 === */
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap");
-
 body::before{
   content:"";position:fixed;inset:0;
   background:linear-gradient(135deg, #1a1b2f 0%, #282a36 30%, #44475a 70%, #6272a4 100%)!important;
@@ -48,7 +46,7 @@ body{
 .card-glass,.card-neumorphism,.card-minimal{
   background:rgba(68,71,90,0.3)!important;
   border:1px solid rgba(98,114,164,0.2)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   box-shadow:0 4px 20px rgba(0,0,0,0.2)!important;
 }
 .card-glass:hover,.card-neumorphism:hover,.card-minimal:hover{
@@ -162,7 +160,7 @@ body{
   background:rgba(26,27,47,0.96)!important;
   backdrop-filter:blur(24px)!important;
   border:1px solid rgba(98,114,164,0.15)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
 }
 #passInput{
   background:rgba(68,71,90,0.2)!important;

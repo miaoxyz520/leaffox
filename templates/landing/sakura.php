@@ -12,7 +12,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title><?=h($siteName)?> - 专属个人主页</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="../../assets/css/fontawesome.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -40,20 +40,20 @@ body{
 .nav-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;color:#f0d8e0;text-decoration:none;letter-spacing:4px}
 .nav-logo .logo-icon{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(255,180,200,0.2),rgba(200,100,150,0.2));border:1px solid rgba(255,180,200,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;color:#f0b8c8}
 .nav-actions{display:flex;gap:8px;align-items:center}
-.nav-btn{padding:8px 24px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.3s;text-decoration:none;letter-spacing:2px}
+.nav-btn{padding:8px 24px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.3s;text-decoration:none;letter-spacing:2px}
 .nav-btn-outline{border:1px solid rgba(255,180,200,0.15);color:rgba(240,200,210,0.6);background:transparent}
 .nav-btn-outline:hover{border-color:rgba(255,180,200,0.3);color:#f0b8c8;background:rgba(255,180,200,0.04)}
 .nav-btn-solid{background:rgba(255,180,200,0.12);color:#f0b8c8;border:1px solid rgba(255,180,200,0.15)}
 .nav-btn-solid:hover{background:rgba(255,180,200,0.18);transform:translateY(-1px)}
 
 .hero{text-align:center;padding:90px 0 60px}
-.hero-badge{display:inline-block;padding:6px 24px;border-radius:20px;background:rgba(255,180,200,0.06);border:1px solid rgba(255,180,200,0.1);color:rgba(240,200,210,0.5);font-size:11px;font-weight:500;margin-bottom:28px;letter-spacing:3px}
+.hero-badge{display:inline-block;padding:6px 24px;border-radius:12px;background:rgba(255,180,200,0.06);border:1px solid rgba(255,180,200,0.1);color:rgba(240,200,210,0.5);font-size:11px;font-weight:500;margin-bottom:28px;letter-spacing:3px}
 .hero h1{font-size:44px;font-weight:900;line-height:1.2;margin-bottom:16px;letter-spacing:6px}
 .hero h1 .accent{color:#f0b8c8;position:relative}
 .hero h1 .accent::after{content:"";position:absolute;bottom:4px;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,180,200,0.3),transparent)}
 .hero p{font-size:15px;color:rgba(232,208,216,0.35);max-width:480px;margin:0 auto;line-height:2;letter-spacing:2px}
 .hero-actions{display:flex;gap:12px;justify-content:center;margin-top:36px;flex-wrap:wrap}
-.hero-btn{padding:12px 36px;border-radius:24px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.3s;text-decoration:none;display:inline-flex;align-items:center;gap:8px;letter-spacing:2px}
+.hero-btn{padding:12px 36px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.3s;text-decoration:none;display:inline-flex;align-items:center;gap:8px;letter-spacing:2px}
 .hero-btn-primary{background:rgba(255,180,200,0.1);color:#f0b8c8;border:1px solid rgba(255,180,200,0.12)}
 .hero-btn-primary:hover{background:rgba(255,180,200,0.15);transform:translateY(-2px)}
 .hero-btn-secondary{background:transparent;color:rgba(240,200,210,0.4);border:1px solid rgba(255,180,200,0.06)}
@@ -64,7 +64,7 @@ body{
 .section-title p{color:rgba(232,208,216,0.25);font-size:13px;letter-spacing:3px}
 .features{padding:70px 0;border-top:1px solid rgba(255,180,200,0.04)}
 .feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.feature-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,180,200,0.03);border-radius:16px;padding:28px 22px;transition:all 0.4s}
+.feature-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,180,200,0.03);border-radius:10px;padding:28px 22px;transition:all 0.4s}
 .feature-card:hover{background:rgba(255,180,200,0.02);border-color:rgba(255,180,200,0.06);transform:translateY(-3px)}
 .feature-icon{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,180,200,0.08);display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:16px;color:#f0b8c8}
 .feature-card h3{font-size:15px;font-weight:700;margin-bottom:8px;color:#edd0d8;letter-spacing:2px}
@@ -78,7 +78,7 @@ body{
 .step-card p{font-size:12px;color:rgba(232,208,216,0.3);line-height:1.7;letter-spacing:1px}
 
 .cta{padding:60px 0 80px;text-align:center}
-.cta-box{background:rgba(255,180,200,0.02);border:1px solid rgba(255,180,200,0.04);border-radius:24px;padding:48px 32px;max-width:520px;margin:0 auto}
+.cta-box{background:rgba(255,180,200,0.02);border:1px solid rgba(255,180,200,0.04);border-radius:12px;padding:48px 32px;max-width:520px;margin:0 auto}
 .cta-box h2{font-size:22px;font-weight:700;margin-bottom:10px;letter-spacing:4px;color:#edd0d8}
 .cta-box p{color:rgba(232,208,216,0.3);font-size:13px;margin-bottom:28px;letter-spacing:2px}
 

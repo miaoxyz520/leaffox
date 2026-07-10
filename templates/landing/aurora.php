@@ -12,7 +12,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title><?=h($siteName)?> - 专属个人主页</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="../../assets/css/fontawesome.min.css">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -81,13 +81,13 @@ body{
 .nav-btn-solid:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(0,136,255,0.3)}
 
 .hero{text-align:center;padding:100px 0 60px}
-.hero-badge{display:inline-block;padding:6px 20px;border-radius:20px;background:rgba(0,136,255,0.08);border:1px solid rgba(0,136,255,0.15);color:rgba(0,200,255,0.7);font-size:12px;font-weight:500;margin-bottom:28px;letter-spacing:2px;text-transform:uppercase}
+.hero-badge{display:inline-block;padding:6px 20px;border-radius:12px;background:rgba(0,136,255,0.08);border:1px solid rgba(0,136,255,0.15);color:rgba(0,200,255,0.7);font-size:12px;font-weight:500;margin-bottom:28px;letter-spacing:2px;text-transform:uppercase}
 .hero h1{font-size:52px;font-weight:900;line-height:1.15;margin-bottom:20px}
 .hero h1 .gradient{background:linear-gradient(135deg,#0088ff,#00d4ff,#6600ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;background-size:200% 200%;animation:gradientShift 4s ease infinite}
 @keyframes gradientShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 .hero p{font-size:17px;color:rgba(200,208,224,0.45);max-width:540px;margin:0 auto;line-height:1.8}
 .hero-actions{display:flex;gap:14px;justify-content:center;margin-top:40px;flex-wrap:wrap}
-.hero-btn{padding:14px 38px;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.3s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.hero-btn{padding:14px 38px;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.3s;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
 .hero-btn-primary{background:linear-gradient(135deg,#0088ff,#6600ff);color:#fff;box-shadow:0 8px 30px rgba(0,136,255,0.2)}
 .hero-btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,136,255,0.3)}
 .hero-btn-secondary{background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.06)}
@@ -98,7 +98,7 @@ body{
 .section-title p{color:rgba(200,208,224,0.35);font-size:14px}
 .features{padding:80px 0}
 .feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.feature-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:16px;padding:30px 24px;transition:all 0.4s;position:relative;overflow:hidden}
+.feature-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:10px;padding:30px 24px;transition:all 0.4s;position:relative;overflow:hidden}
 .feature-card::before{content:"";position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,136,255,0.15),transparent);opacity:0;transition:opacity 0.4s}
 .feature-card:hover::before{opacity:1}
 .feature-card:hover{background:rgba(255,255,255,0.03);border-color:rgba(0,136,255,0.06);transform:translateY(-4px)}
@@ -114,7 +114,7 @@ body{
 .step-card p{font-size:13px;color:rgba(200,208,224,0.4);line-height:1.6}
 
 .cta{padding:60px 0 80px;text-align:center}
-.cta-box{background:linear-gradient(135deg,rgba(0,136,255,0.04),rgba(102,0,255,0.03));border:1px solid rgba(0,136,255,0.08);border-radius:24px;padding:48px 32px;max-width:600px;margin:0 auto}
+.cta-box{background:linear-gradient(135deg,rgba(0,136,255,0.04),rgba(102,0,255,0.03));border:1px solid rgba(0,136,255,0.08);border-radius:12px;padding:48px 32px;max-width:600px;margin:0 auto}
 .cta-box h2{font-size:24px;font-weight:800;margin-bottom:10px;color:#e0e8ff}
 .cta-box p{color:rgba(200,208,224,0.4);font-size:14px;margin-bottom:28px}
 

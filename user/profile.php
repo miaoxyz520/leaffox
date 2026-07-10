@@ -4,8 +4,9 @@
  */
 $uid = (int)$_SESSION['user_id'];
 $msg = '';
+$success = false;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $action = $_POST['action'] ?? '';
     
     if ($action === 'update_profile') {
@@ -40,8 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $stmt = $db->prepare("UPDATE users SET nickname=?, bio=?, suffix=? WHERE id=?");
                     $stmt->execute([$nickname, $bio, $suffix, $uid]);
-                    $_SESSION['user_name'] = $nickname ?: $user['username'];
-                    $msg = '资料已更新 ' + '<i class="fas fa-check-circle" style="color:#10b981"></i>';
+                    $_SESSION['user_name'] = $nickname ?: $user['username'] ?? '';
+                    $msg = '资料已更新'; $success = true;
                 }
             }
         }
@@ -58,12 +59,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (strlen($newPwd) < 6) {
             $msg = '新密码至少6位';
         } else {
-            if (!password_verify($oldPwd, $user['password'])) {
+            if (!password_verify($oldPwd, $user['password'] ?? '')) {
                 $msg = '原密码错误';
             } else {
                 $hash = password_hash($newPwd, PASSWORD_DEFAULT);
                 $db->prepare("UPDATE users SET password=? WHERE id=?")->execute([$hash, $uid]);
-                $msg = '密码修改成功 ' + '<i class="fas fa-check-circle" style="color:#10b981"></i>';
+                $msg = '密码修改成功'; $success = true;
             }
         }
     } elseif ($action === 'upload_avatar') {
@@ -74,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $stmt = $db->prepare("UPDATE users SET avatar=? WHERE id=?");
                 $stmt->execute([$result['path'], $uid]);
-                $msg = '头像已更新 ' + '<i class="fas fa-check-circle" style="color:#10b981"></i>';
+                $msg = '头像已更新'; $success = true;
             }
         } else {
             $msg = '请选择图片';
@@ -91,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <p class="text-gray-500 text-sm mb-6">管理你的个人资料和账号信息</p>
 
 <?php if ($msg): ?>
-<div class="bg-<?=strpos($msg,'success<sep>')===0?'emerald':'red'?>-500/10 border border-<?=strpos($msg,'success<sep>')===0?'emerald':'red'?>-500/30 text-<?=strpos($msg,'success<sep>')===0?'emerald':'red'?>-300 px-4 py-3 rounded-xl mb-4 text-sm"><?=h(str_replace('success<sep>','',str_replace('<i class="fas fa-check-circle" style="color:#10b981"></i>','',$msg)))?></div>
+<div class="bg-<?=$success?'emerald':'red'?>-500/10 border border-<?=$success?'emerald':'red'?>-500/30 text-<?=$success?'emerald':'red'?>-300 px-4 py-3 rounded-xl mb-4 text-sm"><?php if ($success): ?><i class="fas fa-check-circle" style="color:#10b981"></i> <?php endif; ?><?=h($msg)?></div>
 <?php endif; ?>
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -108,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <label class="block text-gray-400 text-xs font-medium mb-1.5">你的专属链接</label>
           <div class="flex items-center gap-1.5 bg-white/5 rounded-xl px-3 py-2 border border-white/10">
             <span class="text-gray-500 text-xs whitespace-nowrap overflow-hidden" style="text-overflow:ellipsis"><?=BASE_URL?>/</span>
-            <input type="text" name="suffix" value="<?=h($user['suffix'])?>" maxlength="32" placeholder="mypage" pattern="[a-zA-Z0-9_-]+" title="只允许字母、数字、下划线和连字符" class="bg-transparent border-0 outline-none text-white text-sm flex-1 min-w-0 px-0 py-0" style="min-width:60px">
+            <input type="text" name="suffix" value="<?=h($user['suffix'] ?? '')?>" maxlength="32" placeholder="mypage" pattern="[a-zA-Z0-9_-]+" title="只允许字母、数字、下划线和连字符" class="bg-transparent border-0 outline-none text-white text-sm flex-1 min-w-0 px-0 py-0" style="min-width:60px">
           </div>
           <p class="text-gray-500 text-xs mt-1.5"><i class="fas fa-info-circle text-indigo-400"></i> 设置后可通过短链直接访问你的主页，仅限字母、数字、下划线</p>
         </div>
@@ -122,10 +123,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h3><i class="fas fa-camera text-indigo-400"></i> 我的头像</h3>
     <div class="text-center">
       <div class="w-28 h-28 mx-auto rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold overflow-hidden mb-4">
-        <?php if ($user['avatar']): ?>
-          <img src="<?=BASE_URL.'/'.$user['avatar']?>" class="w-full h-full object-cover">
+        <?php if ($user['avatar'] ?? ''): ?>
+          <img src="<?php $av=$user['avatar']??''; echo $av?BASE_URL.'/'.h($av):'';?>" class="w-full h-full object-cover">
         <?php else: ?>
-          <?=h(mb_substr($user['nickname']?:$user['username'],0,1))?>
+          <?=h(mb_substr($user['nickname'] ?? ''?:$user['username'] ?? '',0,1))?>
         <?php endif; ?>
       </div>
       <form method="POST" enctype="multipart/form-data">
@@ -144,11 +145,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="action" value="update_profile">
         <div>
           <label class="block text-gray-300 text-xs font-medium mb-1.5">昵称</label>
-          <input type="text" name="nickname" value="<?=h($user['nickname'])?>" maxlength="32" placeholder="设置你的显示昵称">
+          <input type="text" name="nickname" value="<?=h($user['nickname'] ?? '')?>" maxlength="32" placeholder="设置你的显示昵称">
         </div>
         <div>
           <label class="block text-gray-300 text-xs font-medium mb-1.5">个人简介</label>
-          <textarea name="bio" rows="3" maxlength="200" placeholder="写一句介绍你自己吧"><?=h($user['bio'])?></textarea>
+          <textarea name="bio" rows="3" maxlength="200" placeholder="写一句介绍你自己吧"><?=h($user['bio'] ?? '')?></textarea>
         </div>
 
         <button type="submit" class="btn-sm btn-primary">保存资料</button>

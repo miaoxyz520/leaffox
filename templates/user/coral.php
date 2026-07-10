@@ -8,8 +8,6 @@
 return [
 'css' => '
 /* === Coral 珊瑚海洋 === */
-@import url("https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap");
-
 body::before{
   content:"";position:fixed;inset:0;
   background:linear-gradient(180deg, #ffecd2 0%, #fcb69f 30%, #ff9a9e 60%, #fad0c4 100%)!important;
@@ -50,7 +48,7 @@ body{
   background:rgba(255,255,255,0.55)!important;
   backdrop-filter:blur(12px)!important;
   border:1px solid rgba(255,255,255,0.7)!important;
-  border-radius:24px!important;
+  border-radius:12px!important;
   box-shadow:
     0 4px 20px rgba(252,182,159,0.08),
     0 1px 3px rgba(0,0,0,0.02)!important;
@@ -75,7 +73,7 @@ body{
 .card-icon{
   background:rgba(255,154,158,0.2)!important;
   color:#ff9a9e!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
 }
 .card-arrow{
   color:rgba(255,154,158,0.3)!important;
@@ -85,7 +83,7 @@ body{
   background:rgba(255,255,255,0.5)!important;
   border:1px solid rgba(255,255,255,0.6)!important;
   backdrop-filter:blur(12px)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   color:#5c3a3a!important;
 }
 .top-link-bar .link-text{
@@ -97,7 +95,7 @@ body{
   background:rgba(255,255,255,0.35)!important;
   border:1px solid rgba(255,255,255,0.5)!important;
   color:rgba(92,58,58,0.45)!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   transition:all 0.3s!important;
 }
 .social-item:hover{
@@ -118,7 +116,7 @@ body{
 .announcement-box{
   background:rgba(255,255,255,0.35)!important;
   border:1px solid rgba(255,154,158,0.15)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   color:rgba(92,58,58,0.55)!important;
 }
 
@@ -132,7 +130,7 @@ body{
   background:rgba(255,154,158,0.15)!important;
   border:1px solid rgba(255,154,158,0.2)!important;
   color:#ff9a9e!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   font-weight:700!important;
 }
 .free-make-btn:hover{
@@ -152,18 +150,18 @@ body{
 .text-block{
   background:rgba(255,255,255,0.3)!important;
   border:1px solid rgba(255,255,255,0.5)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   color:rgba(92,58,58,0.5)!important;
 }
 .picture-block{
-  border-radius:16px!important;
+  border-radius:10px!important;
   border:1px solid rgba(255,255,255,0.5)!important;
 }
 .tipping-btn{
   background:rgba(255,154,158,0.15)!important;
   border:1px solid rgba(255,154,158,0.2)!important;
   color:#ff9a9e!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   font-weight:700!important;
 }
 .tipping-btn:hover{
@@ -174,7 +172,7 @@ body{
   background:rgba(255,236,210,0.97)!important;
   backdrop-filter:blur(24px)!important;
   border:1px solid rgba(255,154,158,0.15)!important;
-  border-radius:24px!important;
+  border-radius:12px!important;
 }
 #passInput{
   background:rgba(255,255,255,0.5)!important;

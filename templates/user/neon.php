@@ -12,8 +12,6 @@
  */
 return [
 'css' => '
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;900&family=JetBrains+Mono:wght@300;400;600&display=swap");
-
 body{
   background:#0a0a0f!important;
   font-family:"JetBrains Mono","Courier New",monospace!important;
@@ -50,7 +48,7 @@ body::after{
 .avatar-wrap{
   border:2px solid rgba(0,255,255,0.2)!important;
   box-shadow:0 0 20px rgba(0,255,255,0.05),0 0 60px rgba(0,255,255,0.02),inset 0 0 20px rgba(0,255,255,0.02)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
   transition:all 0.5s!important;
 }
 .avatar-wrap:hover{

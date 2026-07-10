@@ -8,8 +8,6 @@
 return [
 'css' => '
 /* === Lavender 薰衣草 === */
-@import url("https://fonts.googleapis.com/css2?family=Jost:wght@300;400;600;700&family=Inter:wght@300;400;600&display=swap");
-
 body::before{
   content:"";position:fixed;inset:0;
   background:linear-gradient(160deg, #f5f0ff 0%, #e8dff5 20%, #dcc8f0 40%, #e8dff5 60%, #f0e8f8 100%)!important;
@@ -50,7 +48,7 @@ body{
   background:rgba(255,255,255,0.45)!important;
   backdrop-filter:blur(8px)!important;
   border:1px solid rgba(255,255,255,0.55)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
   box-shadow:0 4px 20px rgba(180,140,220,0.03)!important;
   transition:all 0.3s ease!important;
 }
@@ -72,7 +70,7 @@ body{
 .card-icon{
   background:rgba(180,140,220,0.1)!important;
   color:#b48cdc!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
 }
 .card-arrow{
   color:rgba(180,140,220,0.2)!important;
@@ -82,7 +80,7 @@ body{
   background:rgba(255,255,255,0.4)!important;
   border:1px solid rgba(255,255,255,0.45)!important;
   backdrop-filter:blur(8px)!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   color:#3a2a5a!important;
 }
 .top-link-bar .link-text{
@@ -94,7 +92,7 @@ body{
   background:rgba(255,255,255,0.25)!important;
   border:1px solid rgba(255,255,255,0.35)!important;
   color:rgba(58,42,90,0.3)!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   transition:all 0.3s!important;
 }
 .social-item:hover{
@@ -114,7 +112,7 @@ body{
 .announcement-box{
   background:rgba(255,255,255,0.25)!important;
   border:1px solid rgba(180,140,220,0.08)!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   color:rgba(58,42,90,0.4)!important;
 }
 
@@ -128,7 +126,7 @@ body{
   background:rgba(180,140,220,0.08)!important;
   border:1px solid rgba(180,140,220,0.12)!important;
   color:#b48cdc!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   font-weight:600!important;
 }
 .free-make-btn:hover{
@@ -144,18 +142,18 @@ body{
 .text-block{
   background:rgba(255,255,255,0.2)!important;
   border:1px solid rgba(255,255,255,0.35)!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
   color:rgba(58,42,90,0.35)!important;
 }
 .picture-block{
-  border-radius:14px!important;
+  border-radius:8px!important;
   border:1px solid rgba(255,255,255,0.35)!important;
 }
 .tipping-btn{
   background:rgba(180,140,220,0.08)!important;
   border:1px solid rgba(180,140,220,0.12)!important;
   color:#b48cdc!important;
-  border-radius:14px!important;
+  border-radius:8px!important;
 }
 .tipping-btn:hover{
   background:rgba(180,140,220,0.14)!important;
@@ -165,7 +163,7 @@ body{
   background:rgba(245,240,255,0.98)!important;
   backdrop-filter:blur(20px)!important;
   border:1px solid rgba(180,140,220,0.08)!important;
-  border-radius:20px!important;
+  border-radius:12px!important;
 }
 #passInput{
   background:rgba(255,255,255,0.5)!important;

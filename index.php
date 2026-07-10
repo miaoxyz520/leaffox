@@ -68,7 +68,7 @@ if (!empty($path)) {
             http_response_code(404);
             die('<h1 style="color:#e2e8f0;background:#0f172a;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;margin:0">此页面已被管理员禁用</h1>');
         }
-        $_GET['id'] = (int)$user['id'];
+        $_GET['id'] = (int)$user['id'] ?? 0;
         require __DIR__ . '/page/index.php';
         exit;
     }

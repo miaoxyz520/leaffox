@@ -9,7 +9,7 @@ if (!$db) { header("Location: install.php"); exit; }
 
 $settings = getSettings($db);
 
-if (!$settings['reg_enabled']) {
+if (!($settings['reg_enabled'] ?? 1)) {
     die('注册已关闭');
 }
 

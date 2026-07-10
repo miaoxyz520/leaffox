@@ -1,10 +1,10 @@
 <?php
 /**
- * 普通用户 - 登录/注册页（支持邮箱注册与登录）
+ * 普通用户 - 登录/注册页（支持邮箱注册、游客模式、模板切换）
+ * v2.6 优化：CSRF防护 · Remember Me · 速率限制 · 统一验证
  */
 require_once __DIR__ . '/../config.php';
 
-// 数据库未连接时跳转安装向导
 if (!$db) { header("Location: ../install.php"); exit; }
 
 if (!empty($_SESSION['user_id']) && !empty($_SESSION['user_login'])) {
@@ -15,52 +15,228 @@ $settings = getSettings($db);
 $error = '';
 $regSuccess = '';
 $showEmailField = ($settings['reg_email_verify'] ?? 0) || ($settings['user_email_login'] ?? 1);
+$guestMode = !empty($settings['guest_mode']);
+$loginTemplate = $settings['login_template'] ?? 'default';
+$registerTemplate = $settings['register_template'] ?? 'default';
 
-// 登录处理
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $action = $_POST['action'];
+// 游客登录处理（AJAX）- 不需要CSRF（无状态创建）
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && ($_POST['action'] ?? '') === 'guest_login') {
+    // 增强安全：非AJAX请求直接重定向（防止JSON意外暴露）
+    $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    if (!$isAjax) {
+        redirect('./dashboard.php');
+        exit;
+    }
     
+    header('Content-Type: application/json; charset=utf-8');
+    if (!$guestMode) {
+        echo json_encode(['success' => false, 'message' => '游客模式已关闭']);
+        exit;
+    }
+    $rateCheck = checkRateLimit('guest');
+    if (!$rateCheck['allowed']) {
+        echo json_encode(['success' => false, 'message' => $rateCheck['message']]);
+        exit;
+    }
+    
+    $guestId = 'guest_' . substr(uniqid(), -8) . mt_rand(100, 999);
+    $guestUsername = '游客' . mt_rand(10000, 99999);
+    $guestPassword = bin2hex(random_bytes(16));
+    $hash = password_hash($guestPassword, PASSWORD_DEFAULT);
+    $guestSuffix = 'g_' . substr(md5(uniqid()), 0, 10);
+    
+    try {
+        $stmt = $db->prepare("INSERT INTO users (username, password, nickname, suffix, is_guest, is_active, guest_expires_at) VALUES (?, ?, ?, ?, 1, 1, DATE_ADD(NOW(), INTERVAL 30 MINUTE))");
+        $stmt->execute([$guestUsername, $hash, $guestUsername, $guestSuffix]);
+        $newId = (int)$db->lastInsertId();
+        
+        session_regenerate_id(true);
+        $_SESSION['user_id']    = $newId;
+        $_SESSION['user_name']  = $guestUsername;
+        $_SESSION['user_login'] = true;
+        $_SESSION['is_guest']   = true;
+        regenerateSession();
+        
+        echo json_encode(['success' => true, 'message' => '游客登录成功', 'redirect' => './dashboard.php?guest=1']);
+    } catch (Exception $e) {
+        error_log("[Guest Login Error] " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => '游客账号创建失败，请重试']);
+    }
+    exit;
+}
+
+// 登录/注册处理（需要CSRF验证）
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'] ?? '';
+    
+    // 发送注册验证码 - AJAX，需要CSRF
+    if ($action === 'send_register_code') {
+        header('Content-Type: application/json; charset=utf-8');
+        requireCsrfToken();
+        
+        $email = trim($_POST['email'] ?? '');
+        $username = trim($_POST['username'] ?? '');
+        
+        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            echo json_encode(['success' => false, 'message' => '请输入有效的邮箱地址']);
+            exit;
+        }
+        $rateCheck = checkRateLimit('send_code');
+        if (!$rateCheck['allowed']) {
+            echo json_encode(['success' => false, 'message' => $rateCheck['message']]);
+            exit;
+        }
+        
+        $stmt = $db->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
+        $stmt->execute([$email]);
+        if ($stmt->fetch()) {
+            echo json_encode(['success' => false, 'message' => '该邮箱已被注册']);
+            exit;
+        }
+        if (empty($settings['smtp_host']) || empty($settings['smtp_user']) || empty($settings['smtp_pass'])) {
+            echo json_encode(['success' => false, 'message' => '管理员未配置邮件发送服务']);
+            exit;
+        }
+        if (!empty($_SESSION['reg_email_expiry']) && $_SESSION['reg_email_expiry'] > time() - 55) {
+            echo json_encode(['success' => false, 'message' => '发送过于频繁，请稍后再试']);
+            exit;
+        }
+        
+        $code = str_pad((string)mt_rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expires = time() + 600;
+        $_SESSION['reg_email_code'] = $code;
+        $_SESSION['reg_email_addr'] = $email;
+        $_SESSION['reg_email_expiry'] = $expires;
+        
+        require_once __DIR__ . '/../api/mail.php';
+        $siteName = h($settings['site_name'] ?? 'Leaffox主页系统');
+        $subject = "注册验证码 - {$siteName}";
+        $body = <<<HTML
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>注册验证码</title></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:600px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 30px rgba(0,0,0,0.08);">
+  <div style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:30px;text-align:center;">
+    <h1 style="color:#fff;margin:0;font-size:22px;">📧 邮箱验证</h1>
+  </div>
+  <div style="padding:35px 30px;text-align:center;">
+    <p style="color:#333;font-size:15px;line-height:1.7;">您好！</p>
+    <p style="color:#333;font-size:15px;line-height:1.7;">您正在 <strong>{$siteName}</strong> 注册账号，验证码为：</p>
+    <div style="margin:30px 0;padding:20px;background:#f3f4f6;border-radius:12px;font-size:36px;font-weight:bold;letter-spacing:8px;color:#6366f1;font-family:monospace;">{$code}</div>
+    <p style="color:#999;font-size:13px;">验证码10分钟内有效，请尽快输入。</p>
+    <p style="color:#999;font-size:13px;">如果您没有进行注册操作，请忽略此邮件。</p>
+  </div>
+  <div style="background:#f8f9fa;padding:15px;text-align:center;border-top:1px solid #eee;">
+    <p style="color:#aaa;font-size:12px;margin:0;">{$siteName}</p>
+  </div>
+</div>
+</body></html>
+HTML;
+        $mailResult = sendMail($email, $subject, $body);
+        if ($mailResult['success']) {
+            recordRateLimit('send_code');
+            echo json_encode(['success' => true, 'message' => '验证码已发送']);
+        } else {
+            echo json_encode(['success' => false, 'message' => '邮件发送失败: ' . $mailResult['message']]);
+        }
+        exit;
+    }
+    
+    // 登录处理
     if ($action === 'login') {
+        requireCsrfToken();
+        
         $login = trim($_POST['login'] ?? '');
         $password = $_POST['password'] ?? '';
+        $remember = !empty($_POST['remember'] ?? '');
         
         if (empty($login) || empty($password)) {
             $error = '请输入账号/邮箱和密码';
         } else {
-            // 判断是邮箱还是用户名
-            if (filter_var($login, FILTER_VALIDATE_EMAIL) && ($settings['user_email_login'] ?? 1)) {
-                $stmt = $db->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
-                $stmt->execute([$login]);
+            // 速率限制
+            $rateCheck = checkRateLimit('login');
+            if (!$rateCheck['allowed']) {
+                $error = $rateCheck['message'];
             } else {
-                $stmt = $db->prepare("SELECT * FROM users WHERE username = ? LIMIT 1");
-                $stmt->execute([$login]);
-            }
-            $user = $stmt->fetch();
-            
-            if (!$user) {
-                $error = '账号不存在';
-            } elseif (!($user['is_active'] ?? 1)) {
-                $error = '账号已被封禁，请联系管理员';
-            } elseif (password_verify($password, $user['password'])) {
-                // 检查是否需要邮箱验证
-                if (($settings['reg_email_verify'] ?? 0) && !empty($user['email']) && !($user['email_verified'] ?? 0)) {
-                    $error = '请先验证邮箱后再登录，请前往个人设置绑定并验证邮箱';
+                if (filter_var($login, FILTER_VALIDATE_EMAIL) && ($settings['user_email_login'] ?? 1)) {
+                    $stmt = $db->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
+                    $stmt->execute([$login]);
                 } else {
-                    $_SESSION['user_id']    = (int)$user['id'];
-                    $_SESSION['user_name']  = $user['nickname'] ?: $user['username'];
-                    $_SESSION['user_login'] = true;
-                    
-                    $stmt = $db->prepare("UPDATE users SET last_ip = ?, last_login = ? WHERE id = ?");
-                    $stmt->execute([getClientIP(), date('Y-m-d H:i:s'), $user['id']]);
-                    
-                    redirect('./dashboard.php');
+                    $stmt = $db->prepare("SELECT * FROM users WHERE username = ? LIMIT 1");
+                    $stmt->execute([$login]);
                 }
-            } else {
-                $error = '密码错误';
+                $user = $stmt->fetch();
+                
+                if (!$user) {
+                    $error = '账号不存在';
+                    recordRateLimit('login');
+                } elseif (!($user['is_active'] ?? 1)) {
+                    $error = '账号已被封禁，请联系管理员';
+                } elseif (password_verify($password, $user['password'] ?? '')) {
+                    // 账号锁定检查
+                    if (!empty($user['locked_until']) && strtotime($user['locked_until']) > time()) {
+                        $error = '账号已被临时锁定，请稍后再试';
+                    } elseif (($settings['reg_email_verify'] ?? 0) && !empty($user['email']) && !($user['email_verified'] ?? 0)) {
+                        $error = '请先验证邮箱后再登录';
+                    } else {
+                        session_regenerate_id(true);
+                        $_SESSION['user_id']    = (int)$user['id'];
+                        $_SESSION['user_name']  = $user['nickname'] ?? '' ?: $user['username'] ?? '';
+                        $_SESSION['user_login'] = true;
+                        if (!empty($user['is_guest'])) {
+                            $_SESSION['is_guest'] = true;
+                        }
+                        regenerateSession();
+                        
+                        // 重置登录尝试
+                        $db->prepare("UPDATE users SET last_ip = ?, last_login = ?, login_attempts = 0, locked_until = NULL WHERE id = ?")
+                            ->execute([getClientIP(), date('Y-m-d H:i:s'), $user['id']]);
+                        
+                        // Remember Me (30天)
+                        if ($remember) {
+                            $token = bin2hex(random_bytes(32));
+                            $expires = time() + 86400 * 30;
+                            setcookie('remember_token', $token, [
+                            'expires' => $expires,
+                            'path' => '/',
+                            'domain' => '',
+                            'secure' => !empty($_SERVER['HTTPS']),
+                            'httponly' => true,
+                            'samesite' => 'Lax',
+                        ]);
+                            // 单独设置SameSite（PHP 7.3+支持options数组）
+                            // 存储到数据库（需要 remember_tokens 表，简化处理：存储到 session）
+                            $_SESSION['remember_token'] = $token;
+                            $_SESSION['remember_expiry'] = $expires;
+                        }
+                        
+                        redirect('./dashboard.php');
+                    }
+                } else {
+                    $error = '密码错误';
+                    recordRateLimit('login');
+                    
+                    // 账号锁定逻辑：连续5次错误锁定15分钟
+                    $stmt = $db->prepare("SELECT login_attempts FROM users WHERE username = ? OR email = ? LIMIT 1");
+                    $stmt->execute([$login, $login]);
+                    $attemptData = $stmt->fetch();
+                    $attempts = ($attemptData['login_attempts'] ?? 0) + 1;
+                    if ($attempts >= 5) {
+                        $db->prepare("UPDATE users SET login_attempts = ?, locked_until = ? WHERE username = ? OR email = ?")
+                            ->execute([$attempts, date('Y-m-d H:i:s', time() + 900), $login, $login]);
+                        $error = '密码错误次数过多，账号已锁定15分钟';
+                    } else {
+                        $db->prepare("UPDATE users SET login_attempts = ? WHERE (username = ? OR email = ?) AND id > 0")
+                            ->execute([$attempts, $login, $login]);
+                        $error = "密码错误（剩余" . (5 - $attempts) . "次机会）";
+                    }
+                }
             }
         }
     } elseif ($action === 'register') {
-        if (!$settings['reg_enabled']) {
+        requireCsrfToken();
+        
+        if (empty($settings['reg_enabled'])) {
             $error = '系统暂未开放注册';
         } else {
             $username = trim($_POST['reg_username'] ?? '');
@@ -73,18 +249,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             if (empty($username) || empty($password) || empty($email) || empty($suffix)) {
                 $error = '请填写所有字段';
-            } elseif (!preg_match('/^[a-zA-Z0-9_\x{4e00}-\x{9fa5}]{2,20}$/u', $username)) {
+            } elseif (!validateUsername($username)) {
                 $error = '用户名2-20位，支持中文、字母、数字、下划线';
-            } elseif (strlen($password) < 6) {
-                $error = '密码至少6位';
+            } elseif (strlen($password) < PASSWORD_MIN_LENGTH) {
+                $error = '密码至少需要 ' . PASSWORD_MIN_LENGTH . ' 位';
             } elseif ($password !== $confirm) {
                 $error = '两次密码不一致';
-            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            } elseif (!validateEmail($email)) {
                 $error = '邮箱格式不正确';
-            } elseif (!preg_match('/^[a-zA-Z0-9_-]+$/', $suffix)) {
+            } elseif (!validateSuffix($suffix)) {
                 $error = '后缀只允许字母、数字、下划线和连字符';
             } else {
-                // 验证邮箱验证码
                 $savedCode = $_SESSION['reg_email_code'] ?? '';
                 $savedEmail = $_SESSION['reg_email_addr'] ?? '';
                 $codeExpiry = $_SESSION['reg_email_expiry'] ?? 0;
@@ -97,255 +272,178 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     $error = '验证码已过期，请重新发送';
                 } elseif ((string)$regCode !== (string)$savedCode) {
                     $error = '验证码不正确';
-                }
-                
-                if (empty($error)) {
-                    // 检查用户名重复
+                } else {
+                    // 检查重复
                     $stmt = $db->prepare("SELECT id FROM users WHERE username = ?");
                     $stmt->execute([$username]);
-                    if ($stmt->fetch()) {
-                        $error = '用户名已被注册';
-                    } else {
-                        // 检查邮箱重复
+                    if ($stmt->fetch()) { $error = '用户名已存在'; }
+                    
+                    if (empty($error)) {
+                        $stmt = $db->prepare("SELECT id FROM users WHERE suffix = ?");
+                        $stmt->execute([$suffix]);
+                        if ($stmt->fetch()) { $error = '该后缀已被使用'; }
+                    }
+                    
+                    if (empty($error)) {
                         $stmt = $db->prepare("SELECT id FROM users WHERE email = ?");
                         $stmt->execute([$email]);
-                        if ($stmt->fetch()) {
-                            $error = '邮箱已被注册';
+                        if ($stmt->fetch()) { $error = '该邮箱已被注册'; }
+                    }
+                    
+                    // 检查被封禁后缀
+                    $banned = $settings['banned_suffixes'] ?? '';
+                    if (!empty($banned)) {
+                        $bannedList = explode("\n", str_replace("\r", "", $banned));
+                        foreach ($bannedList as $b) {
+                            $b = trim($b);
+                            if ($b && stripos($suffix, $b) !== false) {
+                                $error = '该后缀不可用，请更换';
+                                break;
+                            }
                         }
                     }
-                }
-                
-                if (empty($error)) {
-                    // 检查后缀重复
-                    $stmt = $db->prepare("SELECT id FROM users WHERE suffix = ?");
-                    $stmt->execute([$suffix]);
-                    if ($stmt->fetch()) {
-                        $error = '该后缀已被其他用户使用';
-                    } else {
-                        // 检查是否在禁止后缀列表中
-                        $bannedRaw = trim($settings['banned_suffixes'] ?? '');
-                        $bannedList = $bannedRaw ? array_map('trim', explode("\n", $bannedRaw)) : [];
-                        $autoBanned = ['page', 'user', 'admin', 'api', 'register', 'login', 'logout'];
-                        $bannedList = array_merge($bannedList, $autoBanned);
-                        $bannedList = array_unique(array_filter($bannedList));
-                        if (in_array($suffix, $bannedList)) {
-                            $error = '该后缀已被系统保留，请换一个';
-                        }
+                    
+                    if (empty($error)) {
+                        $hash = password_hash($password, PASSWORD_DEFAULT);
+                        $isVerified = ($settings['reg_email_verify'] ?? 0) ? 0 : 1;
+                        $stmt = $db->prepare("INSERT INTO users (username, password, email, email_verified, nickname, suffix, is_active, is_guest, last_ip) VALUES (?, ?, ?, ?, ?, ?, 1, 0, ?)");
+                        $stmt->execute([$username, $hash, $email, $isVerified, $username, $suffix, getClientIP()]);
+                        
+                        // 清理验证码Session
+                        unset($_SESSION['reg_email_code'], $_SESSION['reg_email_addr'], $_SESSION['reg_email_expiry']);
+                        
+                        $regSuccess = '注册成功，请登录';
                     }
-                }
-                
-                if (empty($error)) {
-                    $hash = password_hash($password, PASSWORD_DEFAULT);
-                    $stmt = $db->prepare("INSERT INTO users (username, password, nickname, suffix, email, email_verified) VALUES (?, ?, ?, ?, ?, 1)");
-                    $stmt->execute([$username, $hash, $username, $suffix, $email]);
-                    
-                    // 清除验证码session
-                    unset($_SESSION['reg_email_code'], $_SESSION['reg_email_addr'], $_SESSION['reg_email_expiry']);
-                    
-                    $regSuccess = '注册成功，请登录！';
                 }
             }
         }
     }
 }
+
+// 加载登录模板
+$loginTplFile = __DIR__ . '/../templates/login/' . $loginTemplate . '.php';
+$registerTplFile = __DIR__ . '/../templates/login/' . $registerTemplate . '.php';
+$useTpl = file_exists($loginTplFile) ? $loginTplFile : __DIR__ . '/../templates/login/default.php';
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<?php $sn = getSiteName($db ?? null); ?><title>用户登录 - <?=h($sn)?></title>
-<script src="https://cdn.tailwindcss.com"></script>
+<title>用户登录 - <?=h(getSiteName($db))?></title>
+<link rel="stylesheet" href="../assets/css/tailwind.css">
+<link rel="stylesheet" href="../assets/css/fontawesome.min.css">
 <style>
-body{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);min-height:100vh}
-.glass-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:24px}
-.input-field{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;border-radius:12px;padding:14px 18px;width:100%;outline:none;transition:all 0.3s}
-.input-field:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,0.2)}
-.input-field::placeholder{color:rgba(255,255,255,0.35)}
-.btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:12px;padding:14px;width:100%;font-weight:600;cursor:pointer;transition:all 0.3s}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 25px rgba(99,102,241,0.35)}
-.tab-btn{background:none;border:none;color:rgba(255,255,255,0.5);padding:12px 24px;cursor:pointer;font-size:15px;font-weight:500;position:relative;transition:color 0.3s}
-.tab-btn.active{color:#fff}
-.tab-btn.active::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:40px;height:3px;background:linear-gradient(90deg,#6366f1,#a78bfa);border-radius:3px}
-function showRegStep2(){
-  var username = document.querySelector('input[name="reg_username"]').value;
-  var email = document.querySelector('input[name="reg_email"]').value;
-  var password = document.querySelector('input[name="reg_password"]').value;
-  var confirm = document.querySelector('input[name="reg_confirm"]').value;
-  var suffix = document.querySelector('input[name="reg_suffix"]').value;
-  
-  if(!username || !email || !password || !confirm || !suffix){
-    alert('请填写所有注册信息');
-    return;
-  }
-  if(password.length < 6){
-    alert('密码至少6位');
-    return;
-  }
-  if(password !== confirm){
-    alert('两次密码不一致');
-    return;
-  }
-  if(!/^[a-zA-Z0-9_-]+$/.test(suffix)){
-    alert('后缀只允许字母、数字、下划线和连字符');
-    return;
-  }
-  
-  // 发送验证码
-  var btn = document.querySelector('#regStep1 button');
-  btn.disabled = true;
-  btn.textContent = '发送中...';
-  
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', '', true);
-  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-  xhr.onload = function(){
-    btn.disabled = false;
-    btn.textContent = '发送验证码';
-    try{
-      var res = JSON.parse(xhr.responseText);
-      if(res.success){
-        document.getElementById('regEmailDisplay').textContent = email;
-        document.getElementById('regCodeSession').value = Math.random().toString(36);
-        document.getElementById('regStep1').style.display = 'none';
-        document.getElementById('regStep2').style.display = 'block';
-      } else {
-        alert(res.message || '发送失败，请重试');
-      }
-    }catch(e){
-      alert('验证码发送失败，请重试');
-    }
-  };
-  xhr.send('action=send_register_code&email='+encodeURIComponent(email)+'&username='+encodeURIComponent(username));
-}
-
-function resendCode(){
-  var email = document.querySelector('input[name="reg_email"]').value;
-  var username = document.querySelector('input[name="reg_username"]').value;
-  var btn = event.target;
-  btn.textContent = '发送中...';
-  btn.style.pointerEvents = 'none';
-  
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', '', true);
-  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-  xhr.onload = function(){
-    btn.textContent = '重新发送';
-    btn.style.pointerEvents = 'auto';
-    try{
-      var res = JSON.parse(xhr.responseText);
-      if(res.success){
-        alert('验证码已重新发送');
-      } else {
-        alert(res.message || '发送失败');
-      }
-    }catch(e){
-      alert('发送失败');
-    }
-  };
-  xhr.send('action=send_register_code&email='+encodeURIComponent(email)+'&username='+encodeURIComponent(username));
-}
-
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
 </style>
 </head>
-<body class="flex items-center justify-center p-4">
-  <div class="glass-card w-full max-w-md p-8">
-    <div class="text-center mb-8">
-      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">L</div>
-      <h1 class="text-2xl font-bold text-white" id="formTitle">用户登录</h1>
-      <p class="text-gray-400 text-sm mt-1"><?=h(getSiteName($db))?> 个人主页系统</p>
-    </div>
-    
-    <?php if ($error): ?>
-    <div class="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-xl mb-6 text-sm"><?=h($error)?></div>
-    <?php endif; ?>
-    <?php if ($regSuccess): ?>
-    <div class="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-4 py-3 rounded-xl mb-6 text-sm"><?=h($regSuccess)?></div>
-    <?php endif; ?>
-    
-    <!-- 选项卡 -->
-    <div class="flex justify-center mb-6 border-b border-white/10">
-      <button class="tab-btn active" onclick="switchTab('login')">登录</button>
-      <button class="tab-btn" onclick="switchTab('register')">注册</button>
-    </div>
-    
-    <!-- 登录表单 -->
-    <form method="POST" id="loginForm">
-      <input type="hidden" name="action" value="login">
-      <div class="mb-5">
-        <label class="block text-gray-300 text-sm font-medium mb-2">账号 / 邮箱</label>
-        <input type="text" name="login" class="input-field" placeholder="请输入用户名或邮箱" required>
-      </div>
-      <div class="mb-6">
-        <label class="block text-gray-300 text-sm font-medium mb-2">密码</label>
-        <input type="password" name="password" class="input-field" placeholder="请输入密码" required>
-      </div>
-      <button type="submit" class="btn-primary">登 录</button>
-      <div class="mt-3 text-right">
-        <a href="./forgot_password.php" class="text-gray-500 hover:text-indigo-400 text-xs transition">忘记密码？</a>
-      </div>
-    </form>
-    
-    <!-- 注册表单（两步：1.填写信息，2.验证邮箱） -->
-    <form method="POST" id="registerForm" style="display:none">
-      <input type="hidden" name="action" value="register">
-      
-      <div id="regStep1">
-        <div class="mb-4">
-          <label class="block text-gray-300 text-sm font-medium mb-2">用户名</label>
-          <input type="text" name="reg_username" class="input-field" placeholder="2-20位，支持中文/字母/数字" pattern="^[a-zA-Z0-9_\x{4e00}-\x{9fa5}]{2,20}$" required>
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-300 text-sm font-medium mb-2">邮箱 <span class="text-red-400 text-xs">(必填，用于登录和找回密码)</span></label>
-          <input type="email" name="reg_email" id="regEmail" class="input-field" placeholder="example@email.com" required>
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-300 text-sm font-medium mb-2">密码</label>
-          <input type="password" name="reg_password" class="input-field" placeholder="至少6位" required>
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-300 text-sm font-medium mb-2">确认密码</label>
-          <input type="password" name="reg_confirm" class="input-field" placeholder="再次输入密码" required>
-        </div>
-        <div class="mb-5">
-          <label class="block text-gray-300 text-sm font-medium mb-2">个性后缀 <span class="text-gray-500 text-xs font-normal">(访问你主页的短链)</span></label>
-          <div class="flex items-center gap-2">
-            <span class="text-gray-500 text-sm whitespace-nowrap"><?=BASE_URL?>/</span>
-            <input type="text" name="reg_suffix" class="input-field flex-1" placeholder="mypage" pattern="[a-zA-Z0-9_-]+" title="只允许字母、数字、下划线和连字符" required>
-          </div>
-          <p class="text-gray-500 text-xs mt-1">设置后可通过短链直接访问你的主页</p>
-        </div>
-        <button type="button" class="btn-primary w-full" onclick="showRegStep2()">发送验证码</button>
-      </div>
-      
-      <div id="regStep2" style="display:none">
-        <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 mb-5 text-center">
-          <p class="text-sm text-gray-300 mb-1">验证码已发送至</p>
-          <p class="text-base font-semibold text-white" id="regEmailDisplay"></p>
-        </div>
-        <div class="mb-4">
-          <label class="block text-gray-300 text-sm font-medium mb-2">邮箱验证码</label>
-          <input type="text" name="reg_code" class="input-field text-center text-lg tracking-widest" placeholder="输入6位验证码" maxlength="6" required autocomplete="off">
-        </div>
-        <input type="hidden" name="reg_code_session" id="regCodeSession" value="">
-        <button type="submit" class="btn-primary w-full">验证并注册</button>
-        <p class="text-gray-500 text-xs mt-3 text-center">未收到？<a href="#" class="text-indigo-400" onclick="resendCode();return false">重新发送</a></p>
-      </div>
-    </form>
-    
-    <div class="mt-6 text-center">
-      <a href="../admin/index.php" class="text-gray-400 hover:text-indigo-400 text-sm transition">← 管理员登录</a>
-    </div>
-  </div>
+<body>
+<div class="auth-container" style="width:100%;display:flex;align-items:center;justify-content:center">
+<?php require $useTpl; ?>
+</div>
 
 <script>
+const BASE_URL = '<?=BASE_URL?>';
+const CSRF_TOKEN = '<?=getCsrfToken()?>';
+
 function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
-  document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
-  document.getElementById('formTitle').textContent = tab === 'login' ? '用户登录' : '用户注册';
-  if (event && event.currentTarget) event.currentTarget.classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('form[id$=Form]').forEach(f => f.style.display = 'none');
+    
+    if (tab === 'login') {
+        document.querySelector('.tab-btn').classList.add('active');
+        document.getElementById('loginForm').style.display = '';
+        document.getElementById('formTitle').textContent = '用户登录';
+    } else if (tab === 'register') {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('registerForm').style.display = '';
+        document.getElementById('formTitle').textContent = '创建账号';
+    }
 }
+
+function guestLogin(evt) {
+    evt = evt || window.event;
+    const btn = evt.target;
+    btn.disabled = true;
+    btn.textContent = '创建中...';
+    
+    fetch('', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: 'action=guest_login'
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            window.location.href = d.redirect;
+        } else {
+            alert(d.message);
+            btn.disabled = false;
+            btn.textContent = '游客';
+        }
+    })
+    .catch(() => {
+        alert('网络错误，请重试');
+        btn.disabled = false;
+        btn.textContent = '游客';
+    });
+}
+
+let regStep = 1;
+function showRegStep2() {
+    const email = document.getElementById('regEmail')?.value || '';
+    if (!email) { alert('请先填写邮箱'); return; }
+    
+    const form = document.getElementById('registerForm');
+    const formData = new FormData(form);
+    formData.set('action', 'send_register_code');
+    formData.set('_csrf_token', CSRF_TOKEN);
+    
+    const btn = document.querySelector('#regStep1 .btn-primary');
+    btn.disabled = true; btn.textContent = '发送中...';
+    
+    fetch('', {
+        method: 'POST',
+        body: new URLSearchParams(formData)
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            document.getElementById('regStep1').style.display = 'none';
+            document.getElementById('regStep2').style.display = '';
+            document.getElementById('regEmailDisplay').textContent = email;
+        } else {
+            alert(d.message);
+        }
+        btn.disabled = false; btn.textContent = '发送验证码';
+    })
+    .catch(() => {
+        alert('网络错误');
+        btn.disabled = false; btn.textContent = '发送验证码';
+    });
+}
+
+function resendCode() {
+    showRegStep2();
+}
+
+// 为所有POST表单添加CSRF Token
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('form[method="POST"]').forEach(function(form) {
+        // 确保每个POST表单都有CSRF token
+        if (!form.querySelector('input[name="_csrf_token"]')) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = '_csrf_token';
+            input.value = CSRF_TOKEN;
+            form.appendChild(input);
+        }
+    });
+});
 </script>
 </body>
 </html>

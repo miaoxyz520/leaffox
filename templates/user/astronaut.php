@@ -8,8 +8,6 @@
 return [
 'css' => '
 /* === Astronaut 太空宇航员 === */
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@300;400;600&display=swap");
-
 body::before{
   content:"";position:fixed;inset:0;
   background:
@@ -72,7 +70,7 @@ body{
   background:rgba(255,255,255,0.03)!important;
   backdrop-filter:blur(16px)!important;
   border:1px solid rgba(255,255,255,0.04)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
   box-shadow:0 4px 30px rgba(0,0,0,0.1)!important;
   transition:all 0.4s ease!important;
 }
@@ -187,7 +185,7 @@ body{
   background:rgba(5,8,22,0.97)!important;
   backdrop-filter:blur(24px)!important;
   border:1px solid rgba(100,140,255,0.06)!important;
-  border-radius:16px!important;
+  border-radius:10px!important;
 }
 #passInput{
   background:rgba(255,255,255,0.03)!important;
